@@ -9,6 +9,22 @@ on:
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: market_copilot
+          POSTGRES_PASSWORD: market_copilot
+          POSTGRES_DB: market_copilot
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U market_copilot -d market_copilot"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql+psycopg://market_copilot:market_copilot@localhost:5432/market_copilot
     steps:
       - uses: actions/checkout@v4
 

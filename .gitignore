@@ -3,8 +3,10 @@
 .env.*
 !.env.example
 
-# Data (git-ignored per project convention; use DVC/remote storage for real data)
-/data/
+# Data is DVC-tracked, not git-tracked. DVC manages its own nested .gitignore
+# entries under /data/ (created by `dvc add`) to exclude the raw content while
+# still letting git track the *.dvc metadata files and the local DVC remote.
+/dvc-storage/
 
 # ML experiment tracking
 mlruns/

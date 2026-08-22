@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: market_copilot_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: market_copilot
+      POSTGRES_PASSWORD: market_copilot
+      POSTGRES_DB: market_copilot
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U market_copilot -d market_copilot"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
