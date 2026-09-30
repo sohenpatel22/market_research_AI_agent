@@ -19,7 +19,7 @@ _FILTERS = """
     (CAST(:tickers AS text[]) IS NULL OR ticker = ANY(CAST(:tickers AS text[])))
     AND (CAST(:forms AS text[]) IS NULL OR filing_type = ANY(CAST(:forms AS text[])))
 """
-_COLS = "id, ticker, filing_type, filed_date, section, chunk_text"
+_COLS = "id, ticker, filing_type, filed_date, section, accession_number, chunk_index, chunk_text"
 
 DENSE_SQL = text(
     f"SELECT {_COLS} FROM documents WHERE {_FILTERS} "
@@ -61,15 +61,22 @@ def hybrid_search(
     tickers: list[str] | None = None,
     filing_types: list[str] | None = None,
     candidates: int = 30,
+    mode: str = "hybrid",
 ) -> list[RetrievedChunk]:
     params = {
         "tickers": [t.upper() for t in tickers] if tickers else None,
         "forms": filing_types or None,
         "n": candidates,
     }
-    dense = session.execute(DENSE_SQL, {**params, "emb": _vector_literal(query_embedding)}).all()
+    # `mode` exists for ablations: "dense" (vectors only), "sparse" (keywords only), "hybrid".
+    dense = []
+    if mode in ("dense", "hybrid"):
+        emb = {**params, "emb": _vector_literal(query_embedding)}
+        dense = session.execute(DENSE_SQL, emb).all()
+    sparse = []
     sparse_q = to_or_tsquery(query)
-    sparse = session.execute(SPARSE_SQL, {**params, "q": sparse_q}).all() if sparse_q else []
+    if mode in ("sparse", "hybrid") and sparse_q:
+        sparse = session.execute(SPARSE_SQL, {**params, "q": sparse_q}).all()
 
     rows = {r.id: r for r in [*dense, *sparse]}
     scores = rrf_fuse([[r.id for r in dense], [r.id for r in sparse]])
@@ -81,6 +88,8 @@ def hybrid_search(
             filing_type=rows[i].filing_type,
             filed_date=rows[i].filed_date,
             section=rows[i].section,
+            accession_number=rows[i].accession_number,
+            chunk_index=rows[i].chunk_index,
             text=rows[i].chunk_text,
             score=scores[i],
         )
@@ -112,6 +121,7 @@ def retrieve(
     use_rerank: bool | None = None,
     embed_fn: Callable[[list[str]], list[list[float]]] | None = None,
     session: Session | None = None,
+    mode: str = "hybrid",
 ) -> list[RetrievedChunk]:
     """Embed the query, run hybrid search and (optionally) rerank."""
     from market_research_agent.data.db import session_scope
@@ -123,7 +133,7 @@ def retrieve(
     emb = embed([query])[0]
 
     def run(s: Session) -> list[RetrievedChunk]:
-        return hybrid_search(s, query, emb, pool, tickers, filing_types)
+        return hybrid_search(s, query, emb, pool, tickers, filing_types, mode=mode)
 
     if session is not None:
         found = run(session)

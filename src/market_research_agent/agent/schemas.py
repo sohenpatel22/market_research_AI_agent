@@ -20,6 +20,8 @@ class RetrievedChunk(BaseModel):
     filing_type: str
     filed_date: dt.date
     section: str | None = None
+    accession_number: str | None = None
+    chunk_index: int | None = None
     text: str
     score: float = Field(description="Reciprocal-rank-fusion (or reranker) score; higher is better")
 
@@ -94,6 +96,7 @@ class AgentAnswer(BaseModel):
     question: str
     answer: str
     sources: list[Citation] = []
+    retrieved_context: list[RetrievedChunk] = []
     forecasts: list[ForecastResult] = []
     data: list[DataResult] = []
     quality_passed: bool
