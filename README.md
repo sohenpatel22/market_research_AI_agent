@@ -218,3 +218,36 @@ cross-encoder rerank gives the clear win, so it is on by default (`USE_RERANKER`
 keyword leg helps the un-reranked hybrid but not the reranked one. With 23 questions these
 differences are indicative, not statistically established. Only DeepSeek has been run end to end so
 far; use `--provider`/`--model` to add OpenAI or Claude rows to the comparison.
+
+## API and UI (Phase 6)
+
+```bash
+uv run python -m market_research_agent.api      # http://localhost:7860 (UI at /, docs at /docs)
+```
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /chat` | Ask a question; returns a validated `AgentAnswer` (answer, citations, forecasts, data, quality verdict) plus the Langfuse trace URL |
+| `POST /chat/stream` | Same, as Server-Sent Events: `step` events (`route`, `gather`, `generate`, `grade`, `rewrite`) then one `final` event, or `error` |
+| `POST /forecast` | `{"ticker": "AAPL", "horizon": "1w" \| "1m"}` runs the trained models |
+| `GET /tickers` | Supported tickers and the model version |
+| `GET /health` | Database, forecast models, LLM key and Langfuse status (`ok` / `degraded`) |
+
+```bash
+curl -N -X POST localhost:7860/chat/stream -H 'content-type: application/json' \
+  -d '{"question": "What does NVIDIA say about export controls?"}'
+```
+
+Design notes:
+
+* All bodies are Pydantic models with validation (question length, ticker pattern, horizon enum).
+  Blocking work runs in a thread pool, so the event loop is never blocked; streamed requests run
+  entirely on one worker thread because the Langfuse tracing context is thread-bound.
+* The agent runtime is built lazily and without a checkpointer, so `/health` and `/forecast` work
+  with no LLM key and requests don't accumulate state. A missing key is a clean `503`, never a stack trace.
+* `RATE_LIMIT_PER_MINUTE` (default 30 per client IP) protects the paid LLM on `/chat` and `/forecast`
+  (and the UI); errors returned to clients never include internal details.
+* The Gradio UI (`viz/`) is a thin layer over the same `ask_stream`, `forecast` and price tables:
+  a live progress checklist and cited sources in **Ask the agent**, a Plotly forecast chart in
+  **Forecast**, and Matplotlib/Seaborn charts (relative performance, return distribution, correlation)
+  in **Market data**.
