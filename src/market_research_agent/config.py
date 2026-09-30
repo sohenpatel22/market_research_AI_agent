@@ -23,6 +23,10 @@ class Settings(BaseSettings):
 
     sec_edgar_user_agent: str = "Market Research Agent you@example.com"
     mlflow_tracking_uri: str = "sqlite:///mlflow.db"
+    use_reranker: bool = False
+    reranker_model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+    agent_max_retries: int = 2
+    agent_quality_threshold: float = 0.7
     embedding_model_name: str = "BAAI/bge-small-en-v1.5"
 
 
