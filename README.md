@@ -157,3 +157,26 @@ uv run python -m market_research_agent.agent.cli "What supply chain risks does A
 ```
 
 The provider is chosen with `LLM_PROVIDER` (`deepseek` | `openai` | `anthropic`); see `.env.example`.
+
+## Observability and cost control (Phase 4)
+
+Use `agent/service.py::ask()` (the API, CLI and evals all go through it). With Langfuse configured
+each question is one trace: route, tool calls and every LLM call with tokens, cost and latency,
+tagged with provider, model and git sha, plus scores (`quality_passed`, `grade_score`, `retries`,
+`refused`, `tool_errors`). Without keys it is a no-op, so tests, CI and forks need no Langfuse.
+
+1. Create a free project at <https://cloud.langfuse.com> and set `LANGFUSE_PUBLIC_KEY` and
+   `LANGFUSE_SECRET_KEY` in `.env`.
+2. `uv run python -m market_research_agent.agent.cli "your question"` prints the answer and a trace link.
+3. Optional prompt registry: `... agent.cli --sync-prompts` uploads the local prompts; then set
+   `LANGFUSE_PROMPTS=true` to load the `production` versions (falls back to local text on any
+   error or if a registry edit changes the template variables).
+
+Keeping LLM spend low:
+
+* one cheap model for both agent and judge by default (DeepSeek); a typical full question is
+  about 5k tokens, and a refusal costs about 1k;
+* `LLM_CACHE=true` caches identical calls on disk, so re-running evals/dev questions is free;
+* the grade/retry loop is capped (`AGENT_MAX_RETRIES=2`), and forecasts/SQL lookups run once per
+  question, not once per retry;
+* structured-output calls retry (with a changed prompt) if the model skips the function call.
