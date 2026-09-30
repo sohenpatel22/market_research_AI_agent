@@ -2,7 +2,6 @@
 
 import numpy as np
 import pandas as pd
-import statsmodels.api as sm
 from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, roc_auc_score
 
 
@@ -22,6 +21,8 @@ def dm_test(loss_a: np.ndarray, loss_b: np.ndarray, horizon: int) -> dict[str, f
     """Diebold-Mariano test (HAC / Newey-West, lag = horizon-1). Negative statistic means
     model A has the lower loss. Overlapping h-step targets make errors autocorrelated, so
     naive t-tests would overstate significance."""
+    import statsmodels.api as sm  # training/eval extra; not needed for inference
+
     d = np.asarray(loss_a, dtype=float) - np.asarray(loss_b, dtype=float)
     fit = sm.OLS(d, np.ones_like(d)).fit(cov_type="HAC", cov_kwds={"maxlags": max(horizon - 1, 0)})
     return {"statistic": float(fit.tvalues[0]), "p_value": float(fit.pvalues[0])}
