@@ -71,6 +71,9 @@ indent-style = "space"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+# The paid LLM eval gate is opt-in: `pytest -m eval`.
+addopts = "-m 'not eval'"
+markers = ["eval: paid LLM-judged evaluation gate (deselected by default)"]
 
 # CPU-only PyTorch wheels: the default Linux wheel bundles CUDA (~2 GB), which would bloat CI,
 # the Docker image and the Hugging Face Space for a model this small.
