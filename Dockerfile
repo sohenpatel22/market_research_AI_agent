@@ -59,7 +59,10 @@ FROM base AS runtime-base
 RUN useradd --create-home --uid 1000 user \
     && mkdir -p /app /home/user/.cache/huggingface \
     && chown -R user:user /app /home/user
-ENV HOME=/home/user \
+# Reported by /health and attached to Langfuse traces (there is no .git inside the image).
+ARG GIT_SHA=unknown
+ENV GIT_SHA=${GIT_SHA} \
+    HOME=/home/user \
     HF_HOME=/home/user/.cache/huggingface \
     HF_HUB_OFFLINE=1 \
     PATH=/app/.venv/bin:$PATH \

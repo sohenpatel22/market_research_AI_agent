@@ -27,6 +27,8 @@ services:
     build:
       context: .
       target: runtime
+      args:
+        GIT_SHA: ${GIT_SHA:-local}
     image: market-research-agent:local
     container_name: market_research_agent_app
     restart: unless-stopped
