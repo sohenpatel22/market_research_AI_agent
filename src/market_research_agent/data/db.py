@@ -5,7 +5,7 @@ from functools import lru_cache
 from sqlalchemy import Engine, create_engine, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-from market_copilot.config import settings
+from market_research_agent.config import settings
 
 
 class Base(DeclarativeBase):
@@ -40,7 +40,7 @@ def init_db(engine: Engine | None = None) -> None:
     """Enable pgvector and create all tables. Safe to call repeatedly."""
     engine = engine or get_engine()
     # Import here so Base.metadata is fully populated before create_all.
-    from market_copilot.data import models  # noqa: F401
+    from market_research_agent.data import models  # noqa: F401
 
     with engine.connect() as conn:
         conn.execute(text("CREATE EXTENSION IF NOT EXISTS vector"))

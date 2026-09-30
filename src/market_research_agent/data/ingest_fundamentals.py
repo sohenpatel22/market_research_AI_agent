@@ -11,8 +11,8 @@ import yfinance as yf
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from market_copilot.data.cache import raw_path
-from market_copilot.data.models import Fundamental
+from market_research_agent.data.cache import raw_path
+from market_research_agent.data.models import Fundamental
 
 STATEMENTS: dict[str, Callable[[yf.Ticker], pd.DataFrame]] = {
     "income": lambda t: t.quarterly_income_stmt,

@@ -4,8 +4,8 @@ import pandas as pd
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from market_copilot.data import ingest_prices
-from market_copilot.data.models import Price
+from market_research_agent.data import ingest_prices
+from market_research_agent.data.models import Price
 
 
 def _fake_price_history() -> pd.DataFrame:

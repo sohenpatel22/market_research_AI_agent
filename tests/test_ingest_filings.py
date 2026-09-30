@@ -1,9 +1,9 @@
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from market_copilot.data import ingest_filings
-from market_copilot.data.edgar import FilingRef
-from market_copilot.data.models import EMBEDDING_DIM, Document
+from market_research_agent.data import ingest_filings
+from market_research_agent.data.edgar import FilingRef
+from market_research_agent.data.models import EMBEDDING_DIM, Document
 
 # Not a real ticker/accession number, so this can never collide with live data
 # sitting in the same dev database the tests run against.

@@ -1,17 +1,17 @@
 """CLI entrypoint that ingests prices, fundamentals, and filings for a ticker list.
 
 Usage:
-    uv run python -m market_copilot.data.ingest
-    uv run python -m market_copilot.data.ingest --tickers AAPL MSFT
+    uv run python -m market_research_agent.data.ingest
+    uv run python -m market_research_agent.data.ingest --tickers AAPL MSFT
 """
 
 import argparse
 import logging
 
-from market_copilot.data.db import init_db, session_scope
-from market_copilot.data.ingest_filings import ingest_filings
-from market_copilot.data.ingest_fundamentals import ingest_fundamentals
-from market_copilot.data.ingest_prices import ingest_prices
+from market_research_agent.data.db import init_db, session_scope
+from market_research_agent.data.ingest_filings import ingest_filings
+from market_research_agent.data.ingest_fundamentals import ingest_fundamentals
+from market_research_agent.data.ingest_prices import ingest_prices
 
 logger = logging.getLogger(__name__)
 

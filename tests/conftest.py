@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy.engine import Engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from market_copilot.data.db import get_engine, init_db
+from market_research_agent.data.db import get_engine, init_db
 
 
 @pytest.fixture(scope="session")

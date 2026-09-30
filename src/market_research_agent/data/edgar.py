@@ -15,8 +15,8 @@ import requests
 from bs4 import BeautifulSoup
 from tenacity import retry, stop_after_attempt, wait_fixed
 
-from market_copilot.config import settings
-from market_copilot.data.cache import raw_path, read_cached, write_cache
+from market_research_agent.config import settings
+from market_research_agent.data.cache import raw_path, read_cached, write_cache
 
 COMPANY_TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik:0>10}.json"

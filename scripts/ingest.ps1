@@ -1,1 +1,1 @@
-uv run python -m market_copilot.data.ingest
+uv run python -m market_research_agent.data.ingest

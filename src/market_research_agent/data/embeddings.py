@@ -4,7 +4,7 @@ from functools import lru_cache
 
 from sentence_transformers import SentenceTransformer
 
-from market_copilot.config import settings
+from market_research_agent.config import settings
 
 
 @lru_cache(maxsize=1)
