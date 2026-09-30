@@ -1,5 +1,6 @@
 from typing import Literal
 
+from pydantic import AliasChoices, Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,6 +24,16 @@ class Settings(BaseSettings):
     llm_cache: bool = False
     llm_cache_path: str = ".cache/llm_cache.sqlite"
 
+    # Langfuse observability; tracing is off unless both keys are set.
+    langfuse_public_key: str | None = None
+    langfuse_secret_key: str | None = None
+    langfuse_host: str = Field(
+        "https://cloud.langfuse.com",
+        validation_alias=AliasChoices("LANGFUSE_BASE_URL", "LANGFUSE_HOST"),
+    )
+    langfuse_environment: str = "development"
+    langfuse_prompts: bool = False  # fetch prompts from the Langfuse registry (local fallback)
+
     database_url: str
 
     sec_edgar_user_agent: str = "Market Research Agent you@example.com"
@@ -32,6 +43,12 @@ class Settings(BaseSettings):
     agent_max_retries: int = 2
     agent_quality_threshold: float = 0.7
     embedding_model_name: str = "BAAI/bge-small-en-v1.5"
+
+    @field_validator("langfuse_host", mode="before")
+    @classmethod
+    def _blank_host_means_default(cls, v):
+        # CI passes unset secrets as empty strings.
+        return v or "https://cloud.langfuse.com"
 
 
 settings = Settings()
