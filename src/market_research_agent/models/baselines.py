@@ -7,11 +7,12 @@ import warnings
 
 import numpy as np
 import pandas as pd
-import statsmodels.api as sm
-from arch import arch_model
-from statsmodels.tsa.arima.model import ARIMA
 
 from market_research_agent.models.features import HAR_FEATURES, VOL_HORIZON, ann_log_vol
+
+# statsmodels and arch are only needed to *fit* baselines (the `train` extra). They are
+# imported inside the functions that use them so that inference (`har_predict`) works in a
+# runtime install without those libraries.
 
 
 def naive_predict(frame: pd.DataFrame) -> pd.Series:
@@ -22,6 +23,8 @@ def naive_predict(frame: pd.DataFrame) -> pd.Series:
 def fit_har(train_rows: pd.DataFrame) -> list[float]:
     """Pooled HAR-RV regression (Corsi 2009): y ~ daily + weekly + monthly log-vol. Returns
     [intercept, b_daily, b_weekly, b_monthly]."""
+    import statsmodels.api as sm
+
     data = train_rows.dropna(subset=[*HAR_FEATURES, "y_vol"])
     res = sm.OLS(data["y_vol"], sm.add_constant(data[HAR_FEATURES])).fit()
     return [float(v) for v in res.params.to_numpy()]
@@ -36,6 +39,8 @@ def garch_predict(frame: pd.DataFrame, train_mask: np.ndarray) -> pd.Series:
     """GARCH(1,1)-t fitted on train returns only; forecasts the mean variance over the next 5
     days from every origin. A level bias (Parkinson vs close-to-close variance) is corrected
     using train rows."""
+    from arch import arch_model
+
     ret = (frame["ret"].dropna() * 100.0).astype(float)
     last_train = frame.index[train_mask].max()
     with warnings.catch_warnings():
@@ -56,6 +61,8 @@ def arima_predict(
     """ARIMA(1,0,1) on daily log-vol, fitted on train; parameters frozen and the state updated
     day by day (no look-ahead) to forecast the next 5 days from each origin in `origin_mask`.
     The exp/log round trip biases the level, corrected on origins in `bias_mask` (validation)."""
+    from statsmodels.tsa.arima.model import ARIMA
+
     values = frame["log_rv1"].to_numpy()
     finite = np.isfinite(values)
     if (train_mask & finite).sum() < 100:

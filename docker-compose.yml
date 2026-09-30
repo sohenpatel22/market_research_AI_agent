@@ -1,3 +1,9 @@
+# Local stack:  docker compose up --build           (Postgres + the app on http://localhost:7860)
+# One-off jobs: docker compose --profile tools run --rm tools <command>   (see README)
+#
+# Secrets (LLM / Langfuse keys) come from your git-ignored .env file at run time; nothing is
+# baked into an image.
+
 services:
   postgres:
     image: pgvector/pgvector:pg16
@@ -16,6 +22,47 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  app:
+    build:
+      context: .
+      target: runtime
+      args:
+        GIT_SHA: ${GIT_SHA:-local}
+    image: market-research-agent:local
+    container_name: market_research_agent_app
+    restart: unless-stopped
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      # Inside the compose network Postgres is reachable by service name on its own port.
+      DATABASE_URL: postgresql+psycopg://market_research_agent:market_research_agent@postgres:5432/market_research_agent
+    ports:
+      - "7860:7860"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # Ingestion, model training and evaluation: heavier libraries, run on demand.
+  tools:
+    profiles: ["tools"]
+    build:
+      context: .
+      target: tools
+    image: market-research-agent-tools:local
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgresql+psycopg://market_research_agent:market_research_agent@postgres:5432/market_research_agent
+    volumes:
+      - ./data:/app/data
+      - ./artifacts:/app/artifacts
+      - ./eval:/app/eval
+    depends_on:
+      postgres:
+        condition: service_healthy
 
 volumes:
   postgres_data:

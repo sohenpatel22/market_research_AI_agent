@@ -30,7 +30,7 @@ dvc-storage/        # Local DVC remote (git-ignored)
 This project uses [uv](https://docs.astral.sh/uv/) for dependency management and pins Python 3.11.
 
 ```bash
-uv sync --extra dev
+uv sync --all-extras
 cp .env.example .env  # then fill in real values
 ```
 
@@ -251,3 +251,32 @@ Design notes:
   a live progress checklist and cited sources in **Ask the agent**, a Plotly forecast chart in
   **Forecast**, and Matplotlib/Seaborn charts (relative performance, return distribution, correlation)
   in **Market data**.
+
+## Docker (Phase 7)
+
+```bash
+make docker-up                  # builds the image, starts Postgres + the app on http://localhost:7860
+docker compose logs -f app
+make docker-down
+```
+
+* **`Dockerfile`** is multi-stage: dependencies are installed from `uv.lock` (cached layer) into a
+  venv that is copied into a slim runtime image with **no compilers, no uv, and no
+  training/eval/ingestion libraries** (those live in extras: `ingest`, `train`, `eval`). PyTorch is the CPU
+  wheel, and the embedding and reranker models are downloaded at build time, so the container starts
+  offline (`HF_HUB_OFFLINE=1`). It runs as a **non-root user (UID 1000)** and has a `HEALTHCHECK` on
+  `/health`. Image size is about 3 GB uncompressed (PyTorch alone is 0.8 GB).
+* **Secrets are never baked in.** `docker-compose.yml` reads your git-ignored `.env` at run time; inside
+  the compose network `DATABASE_URL` is pointed at the `postgres` service automatically.
+* **`docker-compose.yml`** starts `postgres` (pgvector), waits for it to be healthy, then the `app`.
+  A `tools` profile provides the heavier libraries for one-off jobs against the same database:
+
+```bash
+docker compose --profile tools run --rm tools                                   # ingest prices/filings
+docker compose --profile tools run --rm tools python -m market_research_agent.models.train
+docker compose --profile tools run --rm tools python -m market_research_agent.eval.retrieval_eval
+```
+
+CI (`docker-build` job) builds the runtime image, checks it runs as UID 1000 with no secrets in its
+layers, then starts the container against a Postgres service and asserts `/health`, the UI and request
+validation respond.
