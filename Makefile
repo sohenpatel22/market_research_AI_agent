@@ -1,4 +1,4 @@
-.PHONY: sync lint format test db-up db-down ingest train retrieval-eval eval eval-gate
+.PHONY: sync lint format test db-up db-down ingest train retrieval-eval eval eval-gate serve
 
 sync:
 	uv sync --extra dev
@@ -32,3 +32,6 @@ eval:
 
 eval-gate:
 	uv run pytest -m eval
+
+serve:
+	uv run python -m market_research_agent.api
