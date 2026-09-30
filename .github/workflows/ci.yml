@@ -99,3 +99,60 @@ jobs:
 
       - name: DeepEval gate
         run: uv run pytest -m eval -v
+
+  docker-build:
+    # Builds the runtime image and smoke-tests the running container against a real Postgres.
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: market_research_agent
+          POSTGRES_PASSWORD: market_research_agent
+          POSTGRES_DB: market_research_agent
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U market_research_agent -d market_research_agent"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build runtime image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runtime
+          load: true
+          tags: market-research-agent:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Image checks (non-root user, size)
+        run: |
+          test "$(docker run --rm market-research-agent:ci id -u)" = "1000"
+          docker image ls market-research-agent:ci --format 'size: {{.Size}}'
+          # secrets must not be baked into the image
+          ! docker history --no-trunc market-research-agent:ci | grep -Ei 'api_key|secret'
+
+      - name: Smoke test the container
+        run: |
+          docker run -d --name app --network host \
+            -e DATABASE_URL=postgresql+psycopg://market_research_agent:market_research_agent@localhost:5432/market_research_agent \
+            market-research-agent:ci
+          for i in $(seq 1 45); do
+            curl -sf localhost:7860/health -o health.json && break
+            sleep 2
+          done
+          cat health.json
+          python3 -c "import json; d=json.load(open('health.json')); assert d['status'] in ('ok','degraded'); assert d['components']['forecast_models']['ok'], d"
+          curl -sf localhost:7860/ | grep -q "Market Research Agent"
+          curl -s -o /dev/null -w '%{http_code}\n' -X POST localhost:7860/chat \
+            -H 'content-type: application/json' -d '{"question":"hi"}' | grep -q 422
+          docker logs app | tail -20
