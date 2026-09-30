@@ -1,7 +1,7 @@
 import datetime as dt
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import Date, Float, Integer, String, UniqueConstraint
+from sqlalchemy import BigInteger, Date, Float, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
 from market_research_agent.data.db import Base
@@ -24,7 +24,7 @@ class Price(Base):
     low: Mapped[float] = mapped_column(Float, nullable=False)
     close: Mapped[float] = mapped_column(Float, nullable=False)
     adj_close: Mapped[float] = mapped_column(Float, nullable=False)
-    volume: Mapped[int] = mapped_column(Integer, nullable=False)
+    volume: Mapped[int] = mapped_column(BigInteger, nullable=False)
 
 
 class Fundamental(Base):
