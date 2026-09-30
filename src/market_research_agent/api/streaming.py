@@ -56,3 +56,34 @@ def _public_error(exc: Exception) -> str:
     if name == "MissingAPIKeyError":
         return "The language model is not configured on this server."
     return "The request failed. Please try again."
+
+
+def iter_in_thread(make_iterator: Callable[[], Iterator[dict]]) -> Iterator[dict]:
+    """Synchronous counterpart of `stream_events` for callers that iterate on a thread pool
+    (e.g. Gradio generators): the wrapped iterator still runs entirely in ONE worker thread.
+    Exceptions raised by the iterator are re-raised in the consumer."""
+    events: queue.Queue = queue.Queue()
+    stop = threading.Event()
+
+    def worker() -> None:
+        try:
+            for item in make_iterator():
+                if stop.is_set():
+                    break
+                events.put(item)
+        except Exception as exc:  # noqa: BLE001
+            events.put(exc)
+        finally:
+            events.put(_DONE)
+
+    threading.Thread(target=worker, daemon=True).start()
+    try:
+        while True:
+            item = events.get()
+            if item is _DONE:
+                return
+            if isinstance(item, Exception):
+                raise item
+            yield item
+    finally:
+        stop.set()
