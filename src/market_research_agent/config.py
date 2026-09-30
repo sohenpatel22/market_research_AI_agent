@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     database_url: str
 
     sec_edgar_user_agent: str = "Market Research Agent you@example.com"
+    mlflow_tracking_uri: str = "sqlite:///mlflow.db"
     embedding_model_name: str = "BAAI/bge-small-en-v1.5"
 
 
