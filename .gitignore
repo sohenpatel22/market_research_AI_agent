@@ -50,3 +50,7 @@ Thumbs.db
 
 # Windows folder metadata
 desktop.ini
+mlflow.db
+
+# Private planning notes
+market-research-agent-build-plan.md

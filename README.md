@@ -103,3 +103,35 @@ uv run dvc push               # uploads the data to the local remote (dvc-storag
 # on another machine / after a fresh clone:
 uv run dvc pull                # restores data/raw/ from the local remote
 ```
+
+## Forecasting models (Phase 2)
+
+```bash
+uv run python -m market_research_agent.models.train        # trains, evaluates, logs to MLflow
+uv run mlflow ui --backend-store-uri sqlite:///mlflow.db   # browse runs and the model registry
+```
+
+Code lives in `src/market_research_agent/models/`. Everything is evaluated on a chronological
+70/15/15 train/val/test split with purged boundaries (no shuffling across time).
+
+* **Volatility (next 5 trading days)**: persistence, HAR-RV, GARCH(1,1)-t and ARIMA baselines vs a
+  pooled PyTorch LSTM. The daily variance proxy is the Parkinson high-low estimator. Metrics: RMSE, MAE,
+  QLIKE, plus a Diebold-Mariano test (HAC) against HAR.
+* **Direction (next ~21 trading days)**: scikit-learn logistic regression / gradient boosting, picked
+  on validation ROC-AUC; reports ROC-AUC, F1 and a confusion matrix against the base rate.
+* **Inference**: `forecast(ticker, horizon="1w"|"1m") -> ForecastResult` (Pydantic), loading the newest
+  bundle from `artifacts/models/`. This is what the agent's forecast tool will call.
+
+Latest run (5 tickers, ~10y daily data, test set = most recent 15%):
+
+| Model | RMSE (vol) | QLIKE |
+|---|---|---|
+| LSTM | 0.0840 | 0.202 |
+| HAR-RV | 0.0890 | 0.223 |
+| ARIMA | 0.0885 | 0.239 |
+| Persistence | 0.1062 | 0.288 |
+| GARCH | 0.0991 | 0.311 |
+
+The LSTM beats HAR (Diebold-Mariano p = 0.001). The direction classifier is weak
+(test ROC-AUC 0.62, accuracy below the 65% always-up base rate), which is the honest expectation for
+return prediction. Outputs are statistical estimates, not investment advice.

@@ -24,6 +24,14 @@ dependencies = [
     "langchain-openai>=0.3.35",
     "langchain-deepseek>=0.1.4",
     "langchain-anthropic>=0.3.22",
+    "torch>=2.13.0",
+    "statsmodels>=0.15.0",
+    "scikit-learn>=1.9.0",
+    "arch>=8.0.0",
+    "mlflow>=3.16.1",
+    "matplotlib>=3.11.2",
+    "seaborn>=0.13.2",
+    "joblib>=1.5.3",
 ]
 
 [project.optional-dependencies]
