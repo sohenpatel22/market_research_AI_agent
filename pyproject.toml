@@ -71,3 +71,13 @@ indent-style = "space"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+# CPU-only PyTorch wheels: the default Linux wheel bundles CUDA (~2 GB), which would bloat CI,
+# the Docker image and the Hugging Face Space for a model this small.
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
