@@ -4,7 +4,7 @@ from pgvector.sqlalchemy import Vector
 from sqlalchemy import Date, Float, Integer, String, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column
 
-from market_copilot.data.db import Base
+from market_research_agent.data.db import Base
 
 # Output dimension of the default embedding model (BAAI/bge-small-en-v1.5).
 EMBEDDING_DIM = 384

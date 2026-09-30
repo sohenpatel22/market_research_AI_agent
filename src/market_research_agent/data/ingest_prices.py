@@ -5,8 +5,8 @@ import yfinance as yf
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from market_copilot.data.cache import raw_path
-from market_copilot.data.models import Price
+from market_research_agent.data.cache import raw_path
+from market_research_agent.data.models import Price
 
 COLUMN_RENAME = {
     "Open": "open",

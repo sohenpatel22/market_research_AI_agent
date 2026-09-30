@@ -3,10 +3,10 @@
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from market_copilot.data.chunking import chunk_text, clean_filing_text
-from market_copilot.data.edgar import FilingRef, fetch_filing_text, get_recent_filings
-from market_copilot.data.embeddings import embed_texts
-from market_copilot.data.models import Document
+from market_research_agent.data.chunking import chunk_text, clean_filing_text
+from market_research_agent.data.edgar import FilingRef, fetch_filing_text, get_recent_filings
+from market_research_agent.data.embeddings import embed_texts
+from market_research_agent.data.models import Document
 
 
 def _chunk_filing(filing: FilingRef) -> list[dict]:

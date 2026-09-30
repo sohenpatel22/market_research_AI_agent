@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     llm_api_key: str | None = None
     database_url: str
 
-    sec_edgar_user_agent: str = "Market Research Copilot you@example.com"
+    sec_edgar_user_agent: str = "Market Research Agent you@example.com"
     embedding_model_name: str = "BAAI/bge-small-en-v1.5"
 
 
