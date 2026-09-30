@@ -97,6 +97,7 @@ class AgentAnswer(BaseModel):
     forecasts: list[ForecastResult] = []
     data: list[DataResult] = []
     quality_passed: bool
+    grade_score: float | None = None
     retries: int = 0
     refused: bool = False
     tool_errors: list[str] = []

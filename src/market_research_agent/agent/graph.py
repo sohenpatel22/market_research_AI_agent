@@ -259,6 +259,7 @@ def build_graph(deps: Dependencies, checkpointer: Any | None = None):
         }
 
     def finalize(state: AgentState) -> dict:
+        grade = state.get("grade")
         docs = dict(enumerate(state.get("retrieved_docs", []), start=1))
         draft = state["draft_answer"]
         # Citation verification: keep only ids that were really retrieved, once each.
@@ -286,6 +287,7 @@ def build_graph(deps: Dependencies, checkpointer: Any | None = None):
                 forecasts=state.get("forecasts", []),
                 data=state.get("data_results", []),
                 quality_passed=state["quality_passed"],
+                grade_score=grade.score if grade else None,
                 retries=state["retry_count"],
                 tool_errors=state.get("tool_errors", []),
             )
