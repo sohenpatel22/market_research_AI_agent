@@ -2,8 +2,8 @@ import pandas as pd
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from market_copilot.data import ingest_fundamentals
-from market_copilot.data.models import Fundamental
+from market_research_agent.data import ingest_fundamentals
+from market_research_agent.data.models import Fundamental
 
 
 def _fake_statements() -> dict[str, pd.DataFrame]:
