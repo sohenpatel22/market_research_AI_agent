@@ -1,18 +1,18 @@
 services:
   postgres:
     image: pgvector/pgvector:pg16
-    container_name: market_copilot_postgres
+    container_name: market_research_agent_postgres
     restart: unless-stopped
     environment:
-      POSTGRES_USER: market_copilot
-      POSTGRES_PASSWORD: market_copilot
-      POSTGRES_DB: market_copilot
+      POSTGRES_USER: market_research_agent
+      POSTGRES_PASSWORD: market_research_agent
+      POSTGRES_DB: market_research_agent
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U market_copilot -d market_copilot"]
+      test: ["CMD-SHELL", "pg_isready -U market_research_agent -d market_research_agent"]
       interval: 5s
       timeout: 5s
       retries: 10
