@@ -88,3 +88,23 @@ DEFAULT_REFUSAL = (
     "supported companies, but I can't help with that request (for example trades, personalized "
     "buy/sell advice, or topics outside these companies)."
 )
+
+
+# Names double as Langfuse prompt-registry names.
+PROMPTS = {
+    "router_system": ROUTER_SYSTEM,
+    "generate_system": GENERATE_SYSTEM,
+    "generate_user": GENERATE_USER,
+    "feedback_block": FEEDBACK_BLOCK,
+    "grade_system": GRADE_SYSTEM,
+    "grade_user": GRADE_USER,
+    "rewrite_system": REWRITE_SYSTEM,
+    "rewrite_user": REWRITE_USER,
+}
+
+
+def get(name: str) -> str:
+    """Prompt text by name: from the Langfuse registry if enabled, else the local template."""
+    from market_research_agent.observability import load_prompt
+
+    return load_prompt(name, PROMPTS[name])

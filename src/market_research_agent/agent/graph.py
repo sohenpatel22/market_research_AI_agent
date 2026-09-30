@@ -141,7 +141,7 @@ def build_graph(deps: Dependencies, checkpointer: Any | None = None):
                 deps.llm,
                 deps.provider,
                 RouteDecision,
-                prompts.ROUTER_SYSTEM.format(tickers=", ".join(SUPPORTED_TICKERS)),
+                prompts.get("router_system").format(tickers=", ".join(SUPPORTED_TICKERS)),
                 state["question"],
             )
         except Exception:  # noqa: BLE001 - a failed router should degrade to plain filing search
@@ -201,16 +201,16 @@ def build_graph(deps: Dependencies, checkpointer: Any | None = None):
 
     def generate(state: AgentState) -> dict:
         feedback = state.get("feedback")
-        user = prompts.GENERATE_USER.format(
+        user = prompts.get("generate_user").format(
             question=state["question"],
-            feedback_block=prompts.FEEDBACK_BLOCK.format(feedback=feedback)
+            feedback_block=prompts.get("feedback_block").format(feedback=feedback)
             if feedback
             else "",
             sources=_format_sources(state.get("retrieved_docs", [])),
             forecasts=_format_forecasts(state.get("forecasts", [])),
             data=_format_data(state.get("data_results", [])),
         )
-        draft = ask(deps.llm, deps.provider, DraftAnswer, prompts.GENERATE_SYSTEM, user)
+        draft = ask(deps.llm, deps.provider, DraftAnswer, prompts.get("generate_system"), user)
         return {"draft_answer": draft}
 
     def grade(state: AgentState) -> dict:
@@ -219,8 +219,8 @@ def build_graph(deps: Dependencies, checkpointer: Any | None = None):
                 deps.judge,
                 deps.judge_provider,
                 GradeResult,
-                prompts.GRADE_SYSTEM,
-                prompts.GRADE_USER.format(
+                prompts.get("grade_system"),
+                prompts.get("grade_user").format(
                     question=state["question"],
                     context=_context_for_grader(state),
                     answer=state["draft_answer"].answer,
@@ -246,8 +246,8 @@ def build_graph(deps: Dependencies, checkpointer: Any | None = None):
             deps.llm,
             deps.provider,
             RewriteResult,
-            prompts.REWRITE_SYSTEM,
-            prompts.REWRITE_USER.format(
+            prompts.get("rewrite_system"),
+            prompts.get("rewrite_user").format(
                 question=state["question"],
                 previous_query=state["search_query"],
                 feedback=state.get("feedback", ""),
