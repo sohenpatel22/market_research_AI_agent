@@ -1,0 +1,404 @@
+{
+  "k": 6,
+  "n_questions": 23,
+  "summary": {
+    "dense": {
+      "ndcg@6": 0.48318668491169564,
+      "recall@6": 0.8260869565217391,
+      "mrr": 0.605072463768116
+    },
+    "sparse": {
+      "ndcg@6": 0.25029736624640136,
+      "recall@6": 0.5217391304347826,
+      "mrr": 0.33260869565217394
+    },
+    "hybrid": {
+      "ndcg@6": 0.44740234033271375,
+      "recall@6": 0.782608695652174,
+      "mrr": 0.5702898550724638
+    },
+    "hybrid+rerank": {
+      "ndcg@6": 0.5906972024492319,
+      "recall@6": 0.9130434782608695,
+      "mrr": 0.7717391304347826
+    }
+  },
+  "per_item": {
+    "dense": {
+      "filings-01": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-02": {
+        "ndcg": 0.8403,
+        "rank": 1
+      },
+      "filings-03": {
+        "ndcg": 0.3194,
+        "rank": 3
+      },
+      "filings-04": {
+        "ndcg": 0.7526,
+        "rank": 1
+      },
+      "filings-05": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-06": {
+        "ndcg": 0.5945,
+        "rank": 4
+      },
+      "filings-07": {
+        "ndcg": 0.3194,
+        "rank": 3
+      },
+      "filings-08": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-09": {
+        "ndcg": 0.403,
+        "rank": 2
+      },
+      "filings-10": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-11": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-12": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-13": {
+        "ndcg": 0.5266,
+        "rank": 2
+      },
+      "filings-14": {
+        "ndcg": 0.3194,
+        "rank": 3
+      },
+      "filings-15": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-16": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-17": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-18": {
+        "ndcg": 0.403,
+        "rank": 2
+      },
+      "filings-19": {
+        "ndcg": 0.6845,
+        "rank": 6
+      },
+      "filings-20": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-21": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-22": {
+        "ndcg": 0.8403,
+        "rank": 1
+      },
+      "filings-23": {
+        "ndcg": 0.6388,
+        "rank": 1
+      }
+    },
+    "sparse": {
+      "filings-01": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-02": {
+        "ndcg": 0.8403,
+        "rank": 1
+      },
+      "filings-03": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-04": {
+        "ndcg": 0.2471,
+        "rank": 5
+      },
+      "filings-05": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-06": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-07": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-08": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-09": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-10": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-11": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-12": {
+        "ndcg": 0.2471,
+        "rank": 5
+      },
+      "filings-13": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-14": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-15": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-16": {
+        "ndcg": 0.2751,
+        "rank": 4
+      },
+      "filings-17": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-18": {
+        "ndcg": 0.2751,
+        "rank": 4
+      },
+      "filings-19": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-20": {
+        "ndcg": 0.403,
+        "rank": 2
+      },
+      "filings-21": {
+        "ndcg": 0.2751,
+        "rank": 4
+      },
+      "filings-22": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-23": {
+        "ndcg": 0.6388,
+        "rank": 1
+      }
+    },
+    "hybrid": {
+      "filings-01": {
+        "ndcg": 0.2471,
+        "rank": 5
+      },
+      "filings-02": {
+        "ndcg": 0.9639,
+        "rank": 1
+      },
+      "filings-03": {
+        "ndcg": 0.403,
+        "rank": 2
+      },
+      "filings-04": {
+        "ndcg": 0.403,
+        "rank": 2
+      },
+      "filings-05": {
+        "ndcg": 0.403,
+        "rank": 2
+      },
+      "filings-06": {
+        "ndcg": 0.6388,
+        "rank": 3
+      },
+      "filings-07": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-08": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-09": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-10": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-11": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-12": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-13": {
+        "ndcg": 0.3987,
+        "rank": 4
+      },
+      "filings-14": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-15": {
+        "ndcg": 0.3194,
+        "rank": 3
+      },
+      "filings-16": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-17": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-18": {
+        "ndcg": 0.403,
+        "rank": 2
+      },
+      "filings-19": {
+        "ndcg": 0.2015,
+        "rank": null
+      },
+      "filings-20": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-21": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-22": {
+        "ndcg": 0.7985,
+        "rank": 1
+      },
+      "filings-23": {
+        "ndcg": 0.6388,
+        "rank": 1
+      }
+    },
+    "hybrid+rerank": {
+      "filings-01": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-02": {
+        "ndcg": 0.9779,
+        "rank": 1
+      },
+      "filings-03": {
+        "ndcg": 0.403,
+        "rank": 2
+      },
+      "filings-04": {
+        "ndcg": 0.7623,
+        "rank": 1
+      },
+      "filings-05": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-06": {
+        "ndcg": 0.5945,
+        "rank": 4
+      },
+      "filings-07": {
+        "ndcg": 0.5168,
+        "rank": 2
+      },
+      "filings-08": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-09": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-10": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-11": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-12": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-13": {
+        "ndcg": 0.5406,
+        "rank": 2
+      },
+      "filings-14": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-15": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-16": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-17": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-18": {
+        "ndcg": 0.403,
+        "rank": 2
+      },
+      "filings-19": {
+        "ndcg": 0.7224,
+        "rank": 2
+      },
+      "filings-20": {
+        "ndcg": 0.7985,
+        "rank": 1
+      },
+      "filings-21": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-22": {
+        "ndcg": 0.8403,
+        "rank": 1
+      },
+      "filings-23": {
+        "ndcg": 0.6388,
+        "rank": 1
+      }
+    }
+  }
+}
