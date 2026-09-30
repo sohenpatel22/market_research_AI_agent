@@ -158,7 +158,12 @@ def train_all(
     if use_mlflow:
         _log_mlflow(cfg, history, table, dm, clf_name, val_auc, clf_metrics, bundle_dir, model, clf)
 
+    from market_research_agent.observability.experiments import log_training_run
+
+    trace_url = log_training_run({**meta, "version": version})
+
     return {
+        "trace_url": trace_url,
         "version": version,
         "table": table,
         "dm": dm,
