@@ -123,11 +123,13 @@ def test_forecast_endpoint(monkeypatch):
     assert client.post("/forecast", json={"ticker": "A;DROP"}).status_code == 422
 
 
-def test_health_reports_components():
+def test_health_reports_components(engine):
     body = make_client().get("/health").json()
     assert set(body["components"]) == {"database", "forecast_models", "llm", "langfuse"}
     assert body["status"] in {"ok", "degraded"} and body["version"]
-    assert body["components"]["database"]["ok"] is True  # test database is up
+    # The database is reachable and the schema exists; whether it is *populated* differs
+    # between a dev machine (full corpus) and CI (empty), so only the wording is checked.
+    assert "filing chunks" in body["components"]["database"]["detail"]
 
 
 def test_tickers_endpoint():
@@ -157,3 +159,43 @@ def test_limiter_window_expires():
 def test_request_models_normalise_input():
     assert ForecastRequest(ticker=" nvda ").ticker == "NVDA"
     assert ChatRequest(question="  hello  ").question == "hello"
+
+
+def test_health_reports_missing_tables_and_empty_corpus_as_degraded(monkeypatch):
+    from market_research_agent.api import health
+
+    class FakeConn:
+        def __init__(self, fail_on):
+            self.fail_on = fail_on
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def execute(self, stmt):
+            sql = str(stmt)
+            if self.fail_on and self.fail_on in sql:
+                raise RuntimeError("relation does not exist")
+
+            class R:
+                @staticmethod
+                def scalar_one():
+                    return 0
+
+            return R()
+
+    class FakeEngine:
+        def __init__(self, fail_on=None):
+            self.fail_on = fail_on
+
+        def connect(self):
+            return FakeConn(self.fail_on)
+
+    monkeypatch.setattr(health, "get_engine", lambda: FakeEngine(fail_on="documents"))
+    missing = health._database()
+    assert not missing.ok and "tables are missing" in missing.detail
+    monkeypatch.setattr(health, "get_engine", lambda: FakeEngine())
+    empty = health._database()
+    assert not empty.ok and "0 filing chunks" in empty.detail
