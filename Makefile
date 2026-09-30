@@ -1,4 +1,4 @@
-.PHONY: sync lint format test db-up db-down ingest
+.PHONY: sync lint format test db-up db-down ingest train
 
 sync:
 	uv sync --extra dev
@@ -20,3 +20,6 @@ db-down:
 
 ingest:
 	uv run python -m market_research_agent.data.ingest
+
+train:
+	uv run python -m market_research_agent.models.train
