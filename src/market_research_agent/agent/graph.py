@@ -135,7 +135,11 @@ def _context_for_grader(state: AgentState) -> str:
 
 
 # ------------------------------------------------------------------------------- graph
-def build_graph(deps: Dependencies, checkpointer: Any | None = None):
+def build_graph(deps: Dependencies, checkpointer: Any | bool | None = None):
+    """Compile the agent graph. `checkpointer=None` uses an in-memory saver, an explicit
+    saver is used as given, and `False` disables checkpointing (a long-running server
+    should not keep every request's state in memory)."""
+
     def ask(llm, provider, schema, system: str, user: str):
         """Structured LLM call. Some providers occasionally answer in plain text instead of
         calling the schema function (parsed as None), so retry with a nudge. The nudge also
@@ -331,7 +335,8 @@ def build_graph(deps: Dependencies, checkpointer: Any | None = None):
     g.add_edge("rewrite", "gather")
     g.add_edge("finalize", END)
     g.add_edge("refuse", END)
-    return g.compile(checkpointer=checkpointer or MemorySaver())
+    saver = MemorySaver() if checkpointer is None else (checkpointer or None)
+    return g.compile(checkpointer=saver)
 
 
 def recursion_limit(max_retries: int) -> int:

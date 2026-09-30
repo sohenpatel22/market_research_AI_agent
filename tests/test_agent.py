@@ -276,3 +276,11 @@ def test_persistent_none_falls_back_instead_of_crashing():
     deps, _ = make_deps(NoneLLM(), FakeLLM(GradeResult=[BAD]), max_retries=0)
     out = run_agent("q", deps)
     assert "could not produce" in out.answer and not out.quality_passed
+
+
+def test_graph_can_run_without_a_checkpointer():
+    llm = FakeLLM(RouteDecision=[FILINGS_ROUTE], DraftAnswer=[DraftAnswer(answer="a")])
+    deps, _ = make_deps(llm, FakeLLM(GradeResult=[GOOD]))
+    graph = build_graph(deps, checkpointer=False)
+    assert graph.checkpointer is None
+    assert run_agent("q", deps, graph=graph).answer == "a"
