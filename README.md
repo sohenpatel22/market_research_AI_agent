@@ -59,7 +59,7 @@ variables. Never commit `.env`.
 extension enabled, matching the default `DATABASE_URL` in `.env.example`.
 
 ```bash
-make db-up   # start Postgres (localhost:5432)
+make db-up   # start Postgres (localhost:5433)
 uv run python -m market_research_agent.data.ingest  # creates the schema, then ingests
 make db-down # stop Postgres
 ```
