@@ -1,5 +1,5 @@
 [project]
-name = "market-copilot"
+name = "market-research-agent"
 version = "0.1.0"
 description = "Agentic RAG assistant over SEC filings and stock price data with forecasting model integration"
 readme = "README.md"
@@ -35,7 +35,7 @@ requires = ["hatchling==1.25.0"]
 build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/market_copilot"]
+packages = ["src/market_research_agent"]
 
 [tool.ruff]
 line-length = 100
