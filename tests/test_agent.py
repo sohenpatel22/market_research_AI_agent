@@ -284,3 +284,28 @@ def test_graph_can_run_without_a_checkpointer():
     graph = build_graph(deps, checkpointer=False)
     assert graph.checkpointer is None
     assert run_agent("q", deps, graph=graph).answer == "a"
+
+
+def test_stream_agent_reports_each_step_then_the_final_answer():
+    from market_research_agent.agent.graph import stream_agent
+
+    llm = FakeLLM(
+        RouteDecision=[FILINGS_ROUTE],
+        DraftAnswer=[DraftAnswer(answer="weak"), DraftAnswer(answer="better")],
+        RewriteResult=[RewriteResult(search_query="q2")],
+    )
+    deps, _ = make_deps(llm, FakeLLM(GradeResult=[BAD, GOOD]))
+    events = list(stream_agent("q", deps))
+    steps = [e["node"] for e in events if e["type"] == "step"]
+    assert steps == [
+        "route",
+        "gather",
+        "generate",
+        "grade",
+        "rewrite",
+        "gather",
+        "generate",
+        "grade",
+    ]
+    assert events[-1]["type"] == "final" and events[-1]["answer"].answer == "better"
+    assert [e["retry"] for e in events if e["type"] == "step"][-1] == 1
