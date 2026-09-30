@@ -6,6 +6,10 @@ on:
   pull_request:
     branches: [main, master]
 
+env:
+  DATABASE_URL: postgresql+psycopg://market_research_agent:market_research_agent@localhost:5432/market_research_agent
+  UV_LINK_MODE: copy
+
 jobs:
   lint-and-test:
     runs-on: ubuntu-latest
@@ -23,13 +27,13 @@ jobs:
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
-    env:
-      DATABASE_URL: postgresql+psycopg://market_research_agent:market_research_agent@localhost:5432/market_research_agent
     steps:
       - uses: actions/checkout@v4
 
       - name: Install uv
-        uses: astral-sh/setup-uv@v3
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
 
       - name: Set up Python
         run: uv python install 3.11
@@ -38,7 +42,60 @@ jobs:
         run: uv sync --extra dev
 
       - name: Lint
-        run: uv run ruff check .
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
 
-      - name: Test
-        run: uv run pytest
+      - name: Test (free tests only; the paid eval gate is a separate job)
+        run: uv run pytest --cov=market_research_agent --cov-report=term-missing
+
+  eval-gate:
+    # Runs the real agent on a small golden subset and fails the build if DeepEval scores drop
+    # below eval/thresholds.yaml. Skipped on forks/PRs without secrets (the tests self-skip
+    # when no API key is present, so this job can never break a fork's build).
+    needs: lint-and-test
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: pgvector/pgvector:pg16
+        env:
+          POSTGRES_USER: market_research_agent
+          POSTGRES_PASSWORD: market_research_agent
+          POSTGRES_DB: market_research_agent
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U market_research_agent -d market_research_agent"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      LLM_PROVIDER: deepseek
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+      LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+      LANGFUSE_BASE_URL: ${{ secrets.LANGFUSE_BASE_URL }}
+      LANGFUSE_ENVIRONMENT: ci
+      DEEPEVAL_TELEMETRY_OPT_OUT: "YES"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        run: uv python install 3.11
+
+      - name: Install dependencies
+        run: uv sync --extra dev
+
+      - name: Cache Hugging Face models (embedding model + reranker)
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ runner.os }}-bge-small-msmarco-minilm
+
+      - name: DeepEval gate
+        run: uv run pytest -m eval -v
