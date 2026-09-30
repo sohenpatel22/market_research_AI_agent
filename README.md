@@ -1,4 +1,4 @@
-# Market Research Copilot
+# Market Research Agent
 
 An agentic RAG assistant over SEC filings and stock price data that can also call a forecasting model.
 
@@ -10,7 +10,7 @@ DVC-versioned raw snapshots are in place. No agent or forecasting logic yet.
 ## Project layout
 
 ```
-src/market_copilot/
+src/market_research_agent/
     data/       # Data ingestion, loading, and preprocessing (SEC filings, price data)
     models/     # Forecasting model training/inference code
     agent/      # Agentic RAG orchestration (retrieval, tool-calling, planning)
@@ -48,7 +48,7 @@ cp .env.example .env  # then fill in real values
 ## Configuration
 
 Settings are loaded from environment variables (or a local `.env` file) via `pydantic-settings` in
-[`src/market_copilot/config.py`](src/market_copilot/config.py). See `.env.example` for the required
+[`src/market_research_agent/config.py`](src/market_research_agent/config.py). See `.env.example` for the required
 variables. Never commit `.env`.
 
 ## Data layer
@@ -60,11 +60,11 @@ extension enabled, matching the default `DATABASE_URL` in `.env.example`.
 
 ```bash
 make db-up   # start Postgres (localhost:5432)
-uv run python -m market_copilot.data.ingest  # creates the schema, then ingests
+uv run python -m market_research_agent.data.ingest  # creates the schema, then ingests
 make db-down # stop Postgres
 ```
 
-Schema (see [`src/market_copilot/data/models.py`](src/market_copilot/data/models.py)):
+Schema (see [`src/market_research_agent/data/models.py`](src/market_research_agent/data/models.py)):
 
 - **prices** — daily OHLCV bars, one row per `(ticker, date)`.
 - **fundamentals** — quarterly financial line items, stored long/tidy as one row per
@@ -74,7 +74,7 @@ Schema (see [`src/market_copilot/data/models.py`](src/market_copilot/data/models
 
 ### Ingestion
 
-`uv run python -m market_copilot.data.ingest [--tickers AAPL MSFT ...]` (defaults to
+`uv run python -m market_research_agent.data.ingest [--tickers AAPL MSFT ...]` (defaults to
 AAPL, MSFT, NVDA, JPM, XOM) does the following per ticker:
 
 1. Downloads daily price history and quarterly fundamentals via `yfinance`.
