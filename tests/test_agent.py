@@ -242,3 +242,37 @@ def test_graph_can_be_reused_across_threads():
 def test_sanitize_strips_injection_lines(text, expected_absent):
     assert expected_absent not in sanitize_excerpt(text)
     assert "<source" not in sanitize_excerpt(text)
+
+
+def test_none_structured_output_is_retried_then_recovers():
+    class FlakyLLM(FakeLLM):
+        def with_structured_output(self, schema, **kw):
+            outer = self
+
+            class Runner:
+                def invoke(self, messages):
+                    outer.calls[schema.__name__] = outer.calls.get(schema.__name__, 0) + 1
+                    if schema is DraftAnswer and outer.calls["DraftAnswer"] < 3:
+                        return None  # provider answered in plain text
+                    return outer.queues[schema.__name__][0]
+
+            return Runner()
+
+    llm = FlakyLLM(RouteDecision=[FILINGS_ROUTE], DraftAnswer=[DraftAnswer(answer="ok")])
+    deps, _ = make_deps(llm, FakeLLM(GradeResult=[GOOD]))
+    out = run_agent("q", deps)
+    assert out.answer == "ok" and llm.calls["DraftAnswer"] == 3
+
+
+def test_persistent_none_falls_back_instead_of_crashing():
+    class NoneLLM(FakeLLM):
+        def with_structured_output(self, schema, **kw):
+            class Runner:
+                def invoke(self, messages):
+                    return None if schema is DraftAnswer else FILINGS_ROUTE
+
+            return Runner()
+
+    deps, _ = make_deps(NoneLLM(), FakeLLM(GradeResult=[BAD]), max_retries=0)
+    out = run_agent("q", deps)
+    assert "could not produce" in out.answer and not out.quality_passed

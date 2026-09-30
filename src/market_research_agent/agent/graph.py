@@ -32,6 +32,12 @@ from market_research_agent.models.forecast import ForecastResult
 
 SUPPORTED_TICKERS = ["AAPL", "MSFT", "NVDA", "JPM", "XOM"]
 NODES_PER_LOOP = 4  # rewrite, gather, generate, grade
+MAX_STRUCTURED_ATTEMPTS = 3
+NUDGE = "Respond only by calling the provided function with the required fields."
+
+
+class StructuredOutputError(RuntimeError):
+    pass
 
 
 class AgentState(TypedDict, total=False):
@@ -131,9 +137,18 @@ def _context_for_grader(state: AgentState) -> str:
 # ------------------------------------------------------------------------------- graph
 def build_graph(deps: Dependencies, checkpointer: Any | None = None):
     def ask(llm, provider, schema, system: str, user: str):
-        return structured_output(llm, schema, provider).invoke(
-            [SystemMessage(content=system), HumanMessage(content=user)]
-        )
+        """Structured LLM call. Some providers occasionally answer in plain text instead of
+        calling the schema function (parsed as None), so retry with a nudge. The nudge also
+        changes the prompt, so a cached bad response is not replayed."""
+        runner = structured_output(llm, schema, provider)
+        messages = [SystemMessage(content=system), HumanMessage(content=user)]
+        for attempt in range(MAX_STRUCTURED_ATTEMPTS):
+            if attempt:
+                messages = [*messages[:2], HumanMessage(content=NUDGE)]
+            result = runner.invoke(messages)
+            if result is not None:
+                return result
+        raise StructuredOutputError(f"No valid {schema.__name__} after retries")
 
     def route(state: AgentState) -> dict:
         try:
@@ -210,7 +225,10 @@ def build_graph(deps: Dependencies, checkpointer: Any | None = None):
             forecasts=_format_forecasts(state.get("forecasts", [])),
             data=_format_data(state.get("data_results", [])),
         )
-        draft = ask(deps.llm, deps.provider, DraftAnswer, prompts.get("generate_system"), user)
+        try:
+            draft = ask(deps.llm, deps.provider, DraftAnswer, prompts.get("generate_system"), user)
+        except StructuredOutputError:
+            draft = DraftAnswer(answer="I could not produce a valid answer to this question.")
         return {"draft_answer": draft}
 
     def grade(state: AgentState) -> dict:
