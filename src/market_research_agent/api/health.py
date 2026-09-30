@@ -22,11 +22,17 @@ def app_version() -> str:
 def _database() -> ComponentStatus:
     try:
         with get_engine().connect() as conn:
-            docs = conn.execute(text("SELECT count(*) FROM documents")).scalar_one()
-            prices = conn.execute(text("SELECT count(*) FROM prices")).scalar_one()
-        return ComponentStatus(ok=True, detail=f"{docs} filing chunks, {prices} price rows")
+            conn.execute(text("SELECT 1"))
+            try:
+                docs = conn.execute(text("SELECT count(*) FROM documents")).scalar_one()
+                prices = conn.execute(text("SELECT count(*) FROM prices")).scalar_one()
+            except Exception:  # noqa: BLE001 - reachable, but the schema/tables are missing
+                return ComponentStatus(ok=False, detail="connected, but tables are missing")
     except Exception as exc:  # noqa: BLE001
         return ComponentStatus(ok=False, detail=f"database unreachable ({type(exc).__name__})")
+    detail = f"{docs} filing chunks, {prices} price rows"
+    # An empty corpus means the agent cannot answer anything useful: report it as degraded.
+    return ComponentStatus(ok=docs > 0 and prices > 0, detail=detail)
 
 
 def _models() -> ComponentStatus:
