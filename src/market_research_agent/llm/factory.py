@@ -34,6 +34,11 @@ def _build(
             f"{provider.upper()}_API_KEY is not set (LLM provider is '{provider}')."
         )
 
+    if cfg.llm_cache:
+        from market_research_agent.llm.cache import get_llm_cache
+
+        kwargs.setdefault("cache", get_llm_cache(cfg.llm_cache_path))
+
     # Imports are lazy so unused provider SDKs are never touched.
     if provider == "deepseek":
         from langchain_deepseek import ChatDeepSeek

@@ -19,6 +19,10 @@ class Settings(BaseSettings):
     openai_api_key: str | None = None
     anthropic_api_key: str | None = None
 
+    # Persistent SQLite cache of identical LLM calls (saves money when re-running evals/dev).
+    llm_cache: bool = False
+    llm_cache_path: str = ".cache/llm_cache.sqlite"
+
     database_url: str
 
     sec_edgar_user_agent: str = "Market Research Agent you@example.com"
