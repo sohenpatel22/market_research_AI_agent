@@ -135,3 +135,25 @@ Latest run (5 tickers, ~10y daily data, test set = most recent 15%):
 The LSTM beats HAR (Diebold-Mariano p = 0.001). The direction classifier is weak
 (test ROC-AUC 0.62, accuracy below the 65% always-up base rate), which is the honest expectation for
 return prediction. Outputs are statistical estimates, not investment advice.
+
+## Agent (Phase 3)
+
+`src/market_research_agent/agent/` is a LangGraph state machine:
+`route -> gather -> generate -> grade -> (rewrite -> gather ...) -> finalize`.
+
+* **route**: the LLM classifies the question and picks tools; out-of-scope requests (trades,
+  personalized advice, prompt-override attempts) are refused without touching any tool.
+* **gather**: hybrid filing search (Postgres full-text + pgvector fused with reciprocal rank
+  fusion, optional cross-encoder reranking via `USE_RERANKER=true`), the forecasting models, and
+  whitelisted read-only SQL lookups. Filings are chunked by 10-K/10-Q "Item" section.
+* **grade / rewrite**: an LLM judge scores grounding and relevance; failures rewrite the search
+  query and retry, bounded by `AGENT_MAX_RETRIES` (default 2) and a LangGraph recursion limit.
+* **finalize**: a Pydantic `AgentAnswer` with citations verified against what was retrieved.
+* Filing excerpts are treated as untrusted data (injection-looking lines are stripped, excerpts
+  are wrapped in tags the system prompt marks as data).
+
+```bash
+uv run python -m market_research_agent.agent.cli "What supply chain risks does Apple report?"
+```
+
+The provider is chosen with `LLM_PROVIDER` (`deepseek` | `openai` | `anthropic`); see `.env.example`.
