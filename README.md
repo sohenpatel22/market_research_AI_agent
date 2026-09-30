@@ -180,3 +180,41 @@ Keeping LLM spend low:
 * the grade/retry loop is capped (`AGENT_MAX_RETRIES=2`), and forecasts/SQL lookups run once per
   question, not once per retry;
 * structured-output calls retry (with a changed prompt) if the model skips the function call.
+
+## Evaluation (Phase 5)
+
+`eval/golden_dataset.json` holds 38 questions: 23 filing questions (drafted by an LLM from sampled
+filing chunks so the ground-truth source is known, then hand-curated), 5 forecast, 5 price/fundamentals
+lookups, and 5 out-of-scope/adversarial requests that must be refused.
+
+| Command | What it does | Cost |
+|---|---|---|
+| `uv run python -m market_research_agent.eval.retrieval_eval` | dense vs sparse vs hybrid vs +rerank: NDCG@6, recall@6, MRR | free |
+| `uv run python -m market_research_agent.eval.run_eval --name <run>` | runs the agent over the golden set; deterministic checks + RAGAS; logs to Langfuse | about $0.15 on DeepSeek |
+| `uv run python -m market_research_agent.eval.compare` | combines saved runs into a comparison table | free |
+| `uv run pytest -m eval` | the DeepEval CI gate on 6 items (`tests/eval/`) | about $0.03 |
+
+Thresholds for all of these live in `eval/thresholds.yaml`. RAGAS is run deliberately during
+development; the DeepEval gate runs in CI (`.github/workflows/ci.yml`, job `eval-gate`) against a small
+committed corpus (`tests/eval/fixtures/ci_corpus.json`) so it works on an empty database, and
+skips itself when no API key is configured. Judges are provider-agnostic (`JUDGE_PROVIDER`).
+
+Baseline (DeepSeek, reranker on, cache off, n=38): faithfulness 0.95, answer relevancy 0.88,
+context precision 0.80, context recall 0.96, refusal accuracy 100%, forecast/data tool use 100%,
+about $0.0011 per question and 4.5k tokens, latency p50 4.5 s / p95 14 s (judge cost about $0.07
+per full run).
+
+Retrieval ablation (23 filing questions, k=6):
+
+| Retriever | NDCG@6 | Recall@6 | MRR |
+|---|---|---|---|
+| dense | 0.483 | 0.826 | 0.605 |
+| sparse (keywords) | 0.250 | 0.522 | 0.333 |
+| hybrid (RRF) | 0.447 | 0.783 | 0.570 |
+| hybrid + cross-encoder rerank | 0.591 | 0.913 | 0.772 |
+
+Findings: the keyword leg alone is weak here, so plain RRF slightly trails dense-only; the
+cross-encoder rerank gives the clear win, so it is on by default (`USE_RERANKER`). Down-weighting the
+keyword leg helps the un-reranked hybrid but not the reranked one. With 23 questions these
+differences are indicative, not statistically established. Only DeepSeek has been run end to end so
+far; use `--provider`/`--model` to add OpenAI or Claude rows to the comparison.

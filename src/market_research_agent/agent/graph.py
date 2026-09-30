@@ -302,6 +302,7 @@ def build_graph(deps: Dependencies, checkpointer: Any | None = None):
                 question=state["question"],
                 answer=draft.answer,
                 sources=sources,
+                retrieved_context=state.get("retrieved_docs", []),
                 forecasts=state.get("forecasts", []),
                 data=state.get("data_results", []),
                 quality_passed=state["quality_passed"],

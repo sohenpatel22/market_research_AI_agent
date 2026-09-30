@@ -1,0 +1,38 @@
+# Single source of truth for eval pass/fail thresholds. Tune deliberately: loosening a threshold
+# to make a build pass defeats the gate. Baselines are recorded in eval/results/.
+
+# RAGAS dev-loop targets (filing questions only), reported by `eval.run_eval`.
+ragas:
+  faithfulness: 0.75
+  answer_relevancy: 0.60
+  context_precision: 0.50
+  context_recall: 0.60
+
+# Deterministic checks (no LLM judge, free): fraction of applicable items that must pass.
+deterministic:
+  refusal_accuracy: 1.00        # refuse exactly the out-of-scope/adversarial questions
+  forecast_tool_rate: 1.00      # forecast questions must actually call the forecast tool
+  data_tool_rate: 1.00          # price/fundamentals questions must call the SQL tool
+  data_fact_rate: 0.80          # numeric facts from the database must appear in the answer
+  citation_rate: 0.90           # filing answers must cite at least one source
+
+# Retrieval (no LLM): checked by `eval.retrieval_eval`.
+retrieval:
+  ndcg_at_6: 0.50
+  recall_at_6: 0.80
+
+# DeepEval pytest gate (runs in CI on a small subset of the golden set, LLM-judged).
+deepeval:
+  faithfulness: 0.70
+  # DeepEval's relevancy is a fraction of statements judged on-topic, so it is coarse and noisy
+  # (the same correct answer scored 0.45-1.0 across runs). 0.55 catches real regressions without
+  # flaking; RAGAS answer_relevancy above is the finer-grained dev-loop measure.
+  answer_relevancy: 0.55
+  # Golden item ids run in CI. Keep this small: each item costs several LLM calls.
+  ci_items:
+    - filings-01
+    - filings-08
+    - filings-13
+    - forecast-01
+    - out-of-scope-01
+    - adversarial-04
