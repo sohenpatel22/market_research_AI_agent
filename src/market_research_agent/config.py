@@ -1,3 +1,5 @@
+from typing import Literal
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -6,8 +8,17 @@ class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
-    # Required once the agent (Phase 3+) calls out to an LLM; not needed for the data layer.
-    llm_api_key: str | None = None
+    # LLM provider for the agent; keys are only needed for the provider actually used.
+    llm_provider: Literal["deepseek", "openai", "anthropic"] = "deepseek"
+    llm_model: str | None = None  # None -> provider default (see llm/factory.py)
+    llm_temperature: float = 0.0
+    # Separate provider for graders/evals so the judge isn't the model under test.
+    judge_provider: Literal["deepseek", "openai", "anthropic"] | None = None
+    judge_model: str | None = None
+    deepseek_api_key: str | None = None
+    openai_api_key: str | None = None
+    anthropic_api_key: str | None = None
+
     database_url: str
 
     sec_edgar_user_agent: str = "Market Research Agent you@example.com"
