@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
   pull_request:
-    branches: [main]
+    branches: [main, master]
 
 jobs:
   lint-and-test:
@@ -13,18 +13,18 @@ jobs:
       postgres:
         image: pgvector/pgvector:pg16
         env:
-          POSTGRES_USER: market_copilot
-          POSTGRES_PASSWORD: market_copilot
-          POSTGRES_DB: market_copilot
+          POSTGRES_USER: market_research_agent
+          POSTGRES_PASSWORD: market_research_agent
+          POSTGRES_DB: market_research_agent
         ports:
           - 5432:5432
         options: >-
-          --health-cmd "pg_isready -U market_copilot -d market_copilot"
+          --health-cmd "pg_isready -U market_research_agent -d market_research_agent"
           --health-interval 5s
           --health-timeout 5s
           --health-retries 10
     env:
-      DATABASE_URL: postgresql+psycopg://market_copilot:market_copilot@localhost:5432/market_copilot
+      DATABASE_URL: postgresql+psycopg://market_research_agent:market_research_agent@localhost:5432/market_research_agent
     steps:
       - uses: actions/checkout@v4
 
