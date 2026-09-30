@@ -54,6 +54,7 @@ def create_app(
         responses={429: {"model": ErrorResponse}, 503: {"model": ErrorResponse}},
     )
     app.state.runtime = runtime
+    app.state.limiter = limiter
 
     @app.middleware("http")
     async def request_id_and_timing(request: Request, call_next):
