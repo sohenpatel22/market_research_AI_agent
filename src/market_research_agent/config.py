@@ -41,6 +41,7 @@ class Settings(BaseSettings):
     use_reranker: bool = True
     reranker_model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     agent_max_retries: int = 2
+    rate_limit_per_minute: int = 30  # per client IP on /chat and /forecast; 0 disables
     agent_quality_threshold: float = 0.7
     embedding_model_name: str = "BAAI/bge-small-en-v1.5"
 

@@ -4,7 +4,7 @@ The grade/rewrite loop is bounded by `max_retries` (and a LangGraph recursion li
 never run forever. Every LLM call returns a Pydantic object via structured output.
 """
 
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from typing import Any, TypedDict
 
@@ -135,7 +135,11 @@ def _context_for_grader(state: AgentState) -> str:
 
 
 # ------------------------------------------------------------------------------- graph
-def build_graph(deps: Dependencies, checkpointer: Any | None = None):
+def build_graph(deps: Dependencies, checkpointer: Any | bool | None = None):
+    """Compile the agent graph. `checkpointer=None` uses an in-memory saver, an explicit
+    saver is used as given, and `False` disables checkpointing (a long-running server
+    should not keep every request's state in memory)."""
+
     def ask(llm, provider, schema, system: str, user: str):
         """Structured LLM call. Some providers occasionally answer in plain text instead of
         calling the schema function (parsed as None), so retry with a nudge. The nudge also
@@ -331,12 +335,24 @@ def build_graph(deps: Dependencies, checkpointer: Any | None = None):
     g.add_edge("rewrite", "gather")
     g.add_edge("finalize", END)
     g.add_edge("refuse", END)
-    return g.compile(checkpointer=checkpointer or MemorySaver())
+    saver = MemorySaver() if checkpointer is None else (checkpointer or None)
+    return g.compile(checkpointer=saver)
 
 
 def recursion_limit(max_retries: int) -> int:
     """Upper bound on graph steps: fixed nodes + each retry loop, with headroom."""
     return 6 + NODES_PER_LOOP * max_retries + 4
+
+
+def _run_config(
+    deps: Dependencies, thread_id: str, callbacks: list | None, metadata: dict | None
+) -> dict:
+    return {
+        "recursion_limit": recursion_limit(deps.max_retries),
+        "callbacks": callbacks or [],
+        "metadata": metadata or {},
+        "configurable": {"thread_id": thread_id},
+    }
 
 
 def run_agent(
@@ -350,11 +366,35 @@ def run_agent(
     """Answer one question. `callbacks`/`metadata` carry observability (e.g. Langfuse)."""
     deps = deps or default_dependencies()
     graph = graph or build_graph(deps)
-    config = {
-        "recursion_limit": recursion_limit(deps.max_retries),
-        "callbacks": callbacks or [],
-        "metadata": metadata or {},
-        "configurable": {"thread_id": thread_id},
-    }
+    config = _run_config(deps, thread_id, callbacks, metadata)
     state = graph.invoke({"question": question}, config=config)
     return state["final"]
+
+
+def stream_agent(
+    question: str,
+    deps: Dependencies | None = None,
+    thread_id: str = "default",
+    callbacks: list | None = None,
+    metadata: dict | None = None,
+    graph=None,
+) -> Iterator[dict]:
+    """Like run_agent, but yields progress as the graph executes.
+
+    Events: {"type": "step", "node": <name>, "retry": <n>} after each node finishes, then a
+    single {"type": "final", "answer": AgentAnswer}. (Answers come from structured output, so
+    progress is streamed per graph step rather than per token.)
+    """
+    deps = deps or default_dependencies()
+    graph = graph or build_graph(deps)
+    config = _run_config(deps, thread_id, callbacks, metadata)
+    retries = 0
+    for update in graph.stream({"question": question}, config=config, stream_mode="updates"):
+        for node, delta in update.items():
+            if not isinstance(delta, dict):
+                continue
+            retries = delta.get("retry_count", retries)
+            if "final" in delta:
+                yield {"type": "final", "answer": delta["final"]}
+            else:
+                yield {"type": "step", "node": node, "retry": retries}
