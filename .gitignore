@@ -54,3 +54,5 @@ mlflow.db
 
 # Private planning notes
 market-research-agent-build-plan.md
+
+.cache/

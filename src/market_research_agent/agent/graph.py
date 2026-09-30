@@ -32,6 +32,12 @@ from market_research_agent.models.forecast import ForecastResult
 
 SUPPORTED_TICKERS = ["AAPL", "MSFT", "NVDA", "JPM", "XOM"]
 NODES_PER_LOOP = 4  # rewrite, gather, generate, grade
+MAX_STRUCTURED_ATTEMPTS = 3
+NUDGE = "Respond only by calling the provided function with the required fields."
+
+
+class StructuredOutputError(RuntimeError):
+    pass
 
 
 class AgentState(TypedDict, total=False):
@@ -131,9 +137,18 @@ def _context_for_grader(state: AgentState) -> str:
 # ------------------------------------------------------------------------------- graph
 def build_graph(deps: Dependencies, checkpointer: Any | None = None):
     def ask(llm, provider, schema, system: str, user: str):
-        return structured_output(llm, schema, provider).invoke(
-            [SystemMessage(content=system), HumanMessage(content=user)]
-        )
+        """Structured LLM call. Some providers occasionally answer in plain text instead of
+        calling the schema function (parsed as None), so retry with a nudge. The nudge also
+        changes the prompt, so a cached bad response is not replayed."""
+        runner = structured_output(llm, schema, provider)
+        messages = [SystemMessage(content=system), HumanMessage(content=user)]
+        for attempt in range(MAX_STRUCTURED_ATTEMPTS):
+            if attempt:
+                messages = [*messages[:2], HumanMessage(content=NUDGE)]
+            result = runner.invoke(messages)
+            if result is not None:
+                return result
+        raise StructuredOutputError(f"No valid {schema.__name__} after retries")
 
     def route(state: AgentState) -> dict:
         try:
@@ -141,7 +156,7 @@ def build_graph(deps: Dependencies, checkpointer: Any | None = None):
                 deps.llm,
                 deps.provider,
                 RouteDecision,
-                prompts.ROUTER_SYSTEM.format(tickers=", ".join(SUPPORTED_TICKERS)),
+                prompts.get("router_system").format(tickers=", ".join(SUPPORTED_TICKERS)),
                 state["question"],
             )
         except Exception:  # noqa: BLE001 - a failed router should degrade to plain filing search
@@ -201,16 +216,19 @@ def build_graph(deps: Dependencies, checkpointer: Any | None = None):
 
     def generate(state: AgentState) -> dict:
         feedback = state.get("feedback")
-        user = prompts.GENERATE_USER.format(
+        user = prompts.get("generate_user").format(
             question=state["question"],
-            feedback_block=prompts.FEEDBACK_BLOCK.format(feedback=feedback)
+            feedback_block=prompts.get("feedback_block").format(feedback=feedback)
             if feedback
             else "",
             sources=_format_sources(state.get("retrieved_docs", [])),
             forecasts=_format_forecasts(state.get("forecasts", [])),
             data=_format_data(state.get("data_results", [])),
         )
-        draft = ask(deps.llm, deps.provider, DraftAnswer, prompts.GENERATE_SYSTEM, user)
+        try:
+            draft = ask(deps.llm, deps.provider, DraftAnswer, prompts.get("generate_system"), user)
+        except StructuredOutputError:
+            draft = DraftAnswer(answer="I could not produce a valid answer to this question.")
         return {"draft_answer": draft}
 
     def grade(state: AgentState) -> dict:
@@ -219,8 +237,8 @@ def build_graph(deps: Dependencies, checkpointer: Any | None = None):
                 deps.judge,
                 deps.judge_provider,
                 GradeResult,
-                prompts.GRADE_SYSTEM,
-                prompts.GRADE_USER.format(
+                prompts.get("grade_system"),
+                prompts.get("grade_user").format(
                     question=state["question"],
                     context=_context_for_grader(state),
                     answer=state["draft_answer"].answer,
@@ -246,8 +264,8 @@ def build_graph(deps: Dependencies, checkpointer: Any | None = None):
             deps.llm,
             deps.provider,
             RewriteResult,
-            prompts.REWRITE_SYSTEM,
-            prompts.REWRITE_USER.format(
+            prompts.get("rewrite_system"),
+            prompts.get("rewrite_user").format(
                 question=state["question"],
                 previous_query=state["search_query"],
                 feedback=state.get("feedback", ""),
@@ -259,6 +277,7 @@ def build_graph(deps: Dependencies, checkpointer: Any | None = None):
         }
 
     def finalize(state: AgentState) -> dict:
+        grade = state.get("grade")
         docs = dict(enumerate(state.get("retrieved_docs", []), start=1))
         draft = state["draft_answer"]
         # Citation verification: keep only ids that were really retrieved, once each.
@@ -286,6 +305,7 @@ def build_graph(deps: Dependencies, checkpointer: Any | None = None):
                 forecasts=state.get("forecasts", []),
                 data=state.get("data_results", []),
                 quality_passed=state["quality_passed"],
+                grade_score=grade.score if grade else None,
                 retries=state["retry_count"],
                 tool_errors=state.get("tool_errors", []),
             )
