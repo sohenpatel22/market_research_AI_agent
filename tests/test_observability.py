@@ -123,3 +123,15 @@ def test_llm_cache_roundtrip(tmp_path):
 
 def test_observability_exports():
     assert callable(observability.get_handler) and callable(observability.trace_context)
+
+
+def test_ask_stream_yields_steps_then_a_traced_final():
+    from market_research_agent.agent.service import ask_stream
+
+    llm = FakeLLM(RouteDecision=[FILINGS_ROUTE], DraftAnswer=[DraftAnswer(answer="a")])
+    good = GradeResult(grounded=True, relevant=True, score=0.9, feedback="")
+    deps, _ = make_deps(llm, FakeLLM(GradeResult=[good]))
+    events = list(ask_stream("q", deps=deps))
+    assert [e["node"] for e in events[:-1]] == ["route", "gather", "generate", "grade"]
+    assert events[-1]["type"] == "final"
+    assert events[-1]["answer"].answer.grade_score == 0.9
