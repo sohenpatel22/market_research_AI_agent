@@ -60,5 +60,6 @@ class Document(Base):
     filed_date: Mapped[dt.date] = mapped_column(Date, index=True, nullable=False)
     accession_number: Mapped[str] = mapped_column(String(32), index=True, nullable=False)
     chunk_index: Mapped[int] = mapped_column(Integer, nullable=False)
+    section: Mapped[str | None] = mapped_column(String(64), nullable=True)
     chunk_text: Mapped[str] = mapped_column(String, nullable=False)
     embedding: Mapped[list[float]] = mapped_column(Vector(EMBEDDING_DIM), nullable=False)
