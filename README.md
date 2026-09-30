@@ -30,7 +30,7 @@ dvc-storage/        # Local DVC remote (git-ignored)
 This project uses [uv](https://docs.astral.sh/uv/) for dependency management and pins Python 3.11.
 
 ```bash
-uv sync --extra dev
+uv sync --all-extras
 cp .env.example .env  # then fill in real values
 ```
 

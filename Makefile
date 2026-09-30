@@ -1,7 +1,7 @@
 .PHONY: sync lint format test db-up db-down ingest train retrieval-eval eval eval-gate serve
 
 sync:
-	uv sync --extra dev
+	uv sync --all-extras
 
 lint:
 	uv run ruff check .

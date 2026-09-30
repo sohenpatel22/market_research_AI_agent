@@ -39,7 +39,7 @@ jobs:
         run: uv python install 3.11
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --all-extras
 
       - name: Lint
         run: |
@@ -89,7 +89,7 @@ jobs:
         run: uv python install 3.11
 
       - name: Install dependencies
-        run: uv sync --extra dev
+        run: uv sync --all-extras
 
       - name: Cache Hugging Face models (embedding model + reranker)
         uses: actions/cache@v4
