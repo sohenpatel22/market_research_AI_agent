@@ -1,4 +1,4 @@
-"""`python -m market_research_agent.api` starts the server (PORT defaults to 7860 like HF Spaces)."""
+"""`python -m market_research_agent.api` starts the server (default port 7860, as on HF Spaces)."""
 
 import os
 
