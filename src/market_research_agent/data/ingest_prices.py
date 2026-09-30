@@ -18,9 +18,9 @@ COLUMN_RENAME = {
 }
 
 
-def fetch_price_history(ticker: str, period: str = "1y") -> pd.DataFrame:
+def fetch_price_history(ticker: str, period: str = "10y") -> pd.DataFrame:
     """Download (or load from cache) daily OHLCV history for a ticker."""
-    cache_file = raw_path("prices", f"{ticker.upper()}.csv")
+    cache_file = raw_path("prices", f"{ticker.upper()}_{period}.csv")
     if cache_file.exists():
         return pd.read_csv(cache_file, index_col=0, parse_dates=True)
 
@@ -50,7 +50,7 @@ def tidy_prices(ticker: str, raw_df: pd.DataFrame) -> pd.DataFrame:
     return tidy[columns].dropna().astype({"volume": "int64"})
 
 
-def ingest_prices(session: Session, ticker: str, period: str = "1y") -> int:
+def ingest_prices(session: Session, ticker: str, period: str = "10y") -> int:
     """Fetch, clean, and upsert price history for a ticker. Returns rows inserted."""
     tidy = tidy_prices(ticker, fetch_price_history(ticker, period=period))
     if tidy.empty:
