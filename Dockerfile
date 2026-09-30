@@ -28,18 +28,19 @@ ENV UV_LINK_MODE=copy \
     UV_PROJECT_ENVIRONMENT=/app/.venv
 WORKDIR /app
 
-# Dependencies first (cached until pyproject.toml / uv.lock change), then the project itself.
+# Dependencies first (cached until pyproject.toml / uv.lock change), then the project itself,
+# installed non-editable so the venv is self-contained and can be copied to the runtime image.
 COPY pyproject.toml uv.lock README.md ./
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --frozen --no-dev --no-install-project
 COPY src ./src
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev
+    uv sync --frozen --no-dev --no-editable
 
 # Same, plus the optional ingestion / training / evaluation libraries.
 FROM builder AS tools-builder
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --extra ingest --extra train --extra eval
+    uv sync --frozen --no-dev --no-editable --extra ingest --extra train --extra eval
 
 # ------------------------------------------------------------------------------------- models
 # Download the Hugging Face models once at build time.
