@@ -1,0 +1,41 @@
+name: Deployment preflight
+
+# Checks that the production secrets work (Neon database with pgvector, Hugging Face token and
+# Space) before deploying. Prints no secrets. Run it from the Actions tab (workflow_dispatch).
+on:
+  workflow_dispatch:
+    inputs:
+      space:
+        description: "Expected Space id (owner/name), optional"
+        required: false
+      require_data:
+        description: "Fail if the database tables are empty"
+        type: boolean
+        default: false
+  push:
+    branches: [phase-8-deploy]
+    paths: [".github/workflows/preflight.yml", "scripts/preflight.py"]
+
+jobs:
+  preflight:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      UV_LINK_MODE: copy
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv python install 3.11
+      - run: uv sync --no-dev
+      - name: Preflight
+        env:
+          SPACE: ${{ inputs.space }}
+          REQUIRE_DATA: ${{ inputs.require_data }}
+        run: |
+          args=""
+          if [ -n "$SPACE" ]; then args="$args --space $SPACE"; fi
+          if [ "$REQUIRE_DATA" = "true" ]; then args="$args --require-data"; fi
+          uv run python scripts/preflight.py $args
