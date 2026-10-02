@@ -15,4 +15,5 @@ not depend on the query (forecasts, SQL lookups) are computed once, not per retr
 - If the grader itself fails, retrying cannot help, so the loop stops and the answer is marked unverified rather than crashing.
 - The final `AgentAnswer` carries `quality_passed`, so a weak answer is shown as weak instead of confidently wrong.
 - A fixed graph is easy to unit-test with fake LLMs (the retry bound is asserted in tests).
-- Cost of the design: the judge adds roughly 30-40% more tokens per question.
+- Cost of the design: every question pays for at least one extra LLM call (the grader), and a retry
+  repeats generation and grading; the per-question cost below includes both.

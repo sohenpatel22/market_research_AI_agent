@@ -12,8 +12,9 @@ returns a Pydantic object through structured output, using function calling for 
 no strict JSON-schema mode). Optional persistent response cache for dev and eval reruns.
 
 ## Consequences
-- A full question costs about $0.001 on DeepSeek (agent) plus a similar judge cost, versus a few cents on larger models; a full 38-question
-  eval run is about $0.04 for the agent and $0.07 for the judge.
+- A full question costs about $0.001 on DeepSeek, including routing, generation and the grading
+  call. A complete 38-question eval run costs about $0.04 for the agent plus about $0.07 for the
+  RAGAS judge. (Larger models would cost one to two orders of magnitude more; not measured here.)
 - DeepSeek occasionally answers in plain text instead of calling the schema function; structured
   calls retry with a changed prompt (so a cached bad answer is not replayed) and degrade gracefully.
 - Model names live in config only; provider prices live in one table used for cost reports.
