@@ -23,9 +23,29 @@ class Base(DeclarativeBase):
     pass
 
 
+def engine_options(url: str) -> dict:
+    """Connection settings that suit both a local Postgres and a serverless one (e.g. Neon).
+
+    * `connect_timeout`: a scaled-to-zero database can take several seconds to wake up.
+    * `pool_pre_ping` + `pool_recycle`: serverless Postgres closes idle connections.
+    * `prepare_threshold=None` behind a transaction-mode pooler (Neon's `-pooler` hosts, PgBouncer):
+      server-side prepared statements do not survive across pooled connections.
+    """
+    connect_args: dict = {"connect_timeout": 30}
+    if "-pooler" in url or "pgbouncer" in url:
+        connect_args["prepare_threshold"] = None
+    return {
+        "pool_pre_ping": True,
+        "pool_recycle": 300,
+        "pool_size": 5,
+        "max_overflow": 5,
+        "connect_args": connect_args,
+    }
+
+
 @lru_cache(maxsize=1)
 def get_engine() -> Engine:
-    return create_engine(settings.database_url, pool_pre_ping=True)
+    return create_engine(settings.database_url, **engine_options(settings.database_url))
 
 
 @lru_cache(maxsize=1)

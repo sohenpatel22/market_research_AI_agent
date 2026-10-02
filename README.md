@@ -1,11 +1,24 @@
 # Market Research Agent
 
-An agentic RAG assistant over SEC filings and stock price data that can also call a forecasting model.
+[![CI](https://github.com/sohenpatel22/market_research_AI_agent/actions/workflows/ci.yml/badge.svg)](https://github.com/sohenpatel22/market_research_AI_agent/actions/workflows/ci.yml)
+[![Live demo](https://img.shields.io/badge/demo-Hugging%20Face%20Space-yellow)](https://huggingface.co/spaces/SohenP/market-research-agent)
 
-## Status
+An agentic RAG assistant over SEC filings and stock prices. It routes a plain-English question,
+retrieves filing excerpts (hybrid vector + keyword search with a cross-encoder reranker), calls
+trained volatility/direction forecasters and whitelisted SQL lookups, drafts a cited answer, and has
+a judge model verify it against the sources, retrying with a rewritten search when it is weak.
 
-**Phase 1 — data layer.** Postgres + pgvector, price/fundamentals/filing-chunk ingestion, and
-DVC-versioned raw snapshots are in place. No agent or forecasting logic yet.
+**Try it:** <https://huggingface.co/spaces/SohenP/market-research-agent> (free tier: the first
+request after a quiet spell can take a minute while the Space wakes up).
+
+| Area | What is in the repo |
+|---|---|
+| Agent | LangGraph route / gather / generate / grade / rewrite loop, provider-agnostic LLM (DeepSeek, OpenAI, Anthropic), prompt-injection guardrails |
+| Retrieval | pgvector + Postgres full-text fused with RRF, section-aware 10-K/10-Q chunking, cross-encoder rerank |
+| Models | PyTorch LSTM vs HAR-RV / GARCH / ARIMA volatility forecasts, scikit-learn direction classifier, MLflow tracking |
+| Evaluation | 38-question golden set, RAGAS dev loop, DeepEval CI gate, retrieval ablation, cost/latency tracking |
+| Observability | Langfuse traces, scores, prompt registry and per-model cost |
+| Serving | FastAPI (+ SSE streaming), Gradio UI, rate limiting, Docker, GitHub Actions CI/CD to a Hugging Face Space |
 
 ## Project layout
 
@@ -280,3 +293,37 @@ docker compose --profile tools run --rm tools python -m market_research_agent.ev
 CI (`docker-build` job) builds the runtime image, checks it runs as UID 1000 with no secrets in its
 layers, then starts the container against a Postgres service and asserts `/health`, the UI and request
 validation respond.
+
+## Deployment (Phase 8)
+
+Production runs on a free **Hugging Face Docker Space** (the image from the `Dockerfile`) talking to a
+free **Neon** Postgres with pgvector. A Space has no persistent database of its own, which is why the
+corpus lives in Neon.
+
+```
+GitHub (master) --CI passes--> deploy.yml --> HF Space (builds the Docker image, runs on :7860)
+                                                  |--> Neon Postgres (pgvector) : filings, prices
+                                                  |--> DeepSeek API             : the language model
+                                                  `--> Langfuse                 : traces and scores
+```
+
+**Workflows** (`.github/workflows/`):
+
+| Workflow | Trigger | What it does |
+|---|---|---|
+| `ci.yml` | push / PR | lint, tests, DeepEval gate, Docker build + container smoke test |
+| `deploy.yml` | CI green on `master`, or manual | copies secrets into the Space, uploads a minimal build context, waits for the build, smoke-tests `/health`, the UI and one real `/chat` |
+| `seed-database.yml` | manual | runs the ingestion pipeline against the production database (idempotent) |
+| `preflight.yml` | manual | checks the database, pgvector and the Hugging Face token without printing secrets |
+
+**Secrets** (GitHub repo settings; the deploy copies the runtime ones into the Space's own secrets):
+`HF_TOKEN` (fine-grained, write access to the Space), `DATABASE_URL`, `DEEPSEEK_API_KEY`,
+`LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL`. A repository variable
+`SEC_EDGAR_USER_AGENT` ("Your Name you@example.com") is recommended for ingestion.
+
+**First deployment:** run *Seed production database*, then *Deploy to Hugging Face Space*.
+Re-run the seed workflow to refresh the data.
+
+**Cost:** infrastructure is free (HF free CPU Space, Neon free tier). The only variable cost is the
+LLM: about $0.001 per question on DeepSeek, and the app rate-limits clients (`RATE_LIMIT_PER_MINUTE`,
+20 on the Space) to protect it. The Space sleeps after a period of inactivity and wakes on the next visit.

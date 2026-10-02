@@ -45,6 +45,18 @@ class Settings(BaseSettings):
     agent_quality_threshold: float = 0.7
     embedding_model_name: str = "BAAI/bge-small-en-v1.5"
 
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def _use_psycopg3_driver(cls, v):
+        """Managed Postgres (Neon, Supabase, Heroku...) hands out plain postgres:// or
+        postgresql:// URLs; SQLAlchemy would pick psycopg2, but this project ships psycopg 3."""
+        if isinstance(v, str):
+            v = v.strip().strip("\"'")
+            for prefix in ("postgres://", "postgresql://"):
+                if v.startswith(prefix):
+                    return "postgresql+psycopg://" + v[len(prefix) :]
+        return v
+
     @field_validator("langfuse_host", mode="before")
     @classmethod
     def _blank_host_means_default(cls, v):
