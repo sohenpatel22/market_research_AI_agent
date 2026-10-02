@@ -101,6 +101,21 @@ def sync_files(api, space_id: str, bundle: Path, message: str) -> None:
     )
 
 
+def ensure_space(api, space_id: str) -> None:
+    """Create the Space as a Docker Space on free CPU hardware if it does not exist yet.
+
+    Hardware is chosen at creation time. (An existing Space created with another choice can
+    only be moved back to CPU with a PRO subscription, so a fresh one is the reliable path.)
+    """
+    api.create_repo(
+        space_id,
+        repo_type="space",
+        space_sdk="docker",
+        space_hardware="cpu-basic",
+        exist_ok=True,
+    )
+
+
 def ensure_cpu_hardware(api, space_id: str) -> str:
     """Make sure the Space runs on free CPU hardware.
 
@@ -111,7 +126,14 @@ def ensure_cpu_hardware(api, space_id: str) -> str:
     requested = str(getattr(runtime, "requested_hardware", None) or "")
     if requested.startswith("cpu"):
         return requested
-    api.request_space_hardware(space_id, "cpu-basic")
+    try:
+        api.request_space_hardware(space_id, "cpu-basic")
+    except Exception as exc:  # noqa: BLE001
+        raise RuntimeError(
+            f"Space {space_id} runs on '{requested or 'unset'}' hardware and could not be moved to "
+            "free CPU (Hugging Face only allows that with a PRO subscription). Delete the Space "
+            "or point --space at a new name; the deployer creates it on cpu-basic."
+        ) from exc
     print(f"  hardware was '{requested or 'unset'}'; switched to cpu-basic (free)")
     return "cpu-basic"
 
@@ -196,6 +218,7 @@ def deploy(
         raise SystemExit(f"Missing required secrets: {', '.join(missing)}")
 
     print(f"Deploying {git_sha[:8]} to {space_id}")
+    ensure_space(api, space_id)
     ensure_cpu_hardware(api, space_id)
     # Secrets/variables first: uploading files is what triggers the (single) build.
     for key, value in secrets.items():
