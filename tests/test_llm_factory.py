@@ -35,3 +35,25 @@ def test_judge_falls_back_and_overrides():
     assert type(get_judge_model(cfg=cfg)).__name__ == "ChatDeepSeek"
     cfg = make_settings(deepseek_api_key="k", anthropic_api_key="k", judge_provider="anthropic")
     assert type(get_judge_model(cfg=cfg)).__name__ == "ChatAnthropic"
+
+
+def test_database_url_is_normalised_to_the_psycopg3_driver():
+    def url(raw):
+        return make_settings(database_url=raw).database_url
+
+    assert url("postgresql://u:p@h/db?sslmode=require") == (
+        "postgresql+psycopg://u:p@h/db?sslmode=require"
+    )
+    assert url("postgres://u:p@h/db") == "postgresql+psycopg://u:p@h/db"
+    assert url('  "postgresql://u:p@h/db"  ') == "postgresql+psycopg://u:p@h/db"
+    explicit = "postgresql+psycopg://u:p@h:5433/db"
+    assert url(explicit) == explicit  # already explicit: untouched
+
+
+def test_engine_options_for_local_and_pooled_hosts():
+    from market_research_agent.data.db import engine_options
+
+    local = engine_options("postgresql+psycopg://u:p@localhost:5433/db")
+    assert local["connect_args"] == {"connect_timeout": 30} and local["pool_pre_ping"]
+    pooled = engine_options("postgresql+psycopg://u:p@ep-cool-123-pooler.neon.tech/db")
+    assert pooled["connect_args"]["prepare_threshold"] is None
