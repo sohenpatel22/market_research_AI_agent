@@ -1,41 +1,71 @@
 # Market Research Agent
 
 [![CI](https://github.com/sohenpatel22/market_research_AI_agent/actions/workflows/ci.yml/badge.svg)](https://github.com/sohenpatel22/market_research_AI_agent/actions/workflows/ci.yml)
-[![Live demo](https://img.shields.io/badge/demo-Hugging%20Face%20Space-yellow)](https://huggingface.co/spaces/SohenP/market-research-ai-agent)
 
-An agentic RAG assistant over SEC filings and stock prices. It routes a plain-English question,
-retrieves filing excerpts (hybrid vector + keyword search with a cross-encoder reranker), calls
-trained volatility/direction forecasters and whitelisted SQL lookups, drafts a cited answer, and has
-a judge model verify it against the sources, retrying with a rewritten search when it is weak.
+An agentic research assistant over SEC filings and stock prices. It routes a plain-English
+question, retrieves filing excerpts (hybrid vector + keyword search with a cross-encoder reranker),
+calls trained volatility/direction forecasters and whitelisted SQL lookups, drafts a **cited**
+answer, and has a judge model verify it against the sources, retrying with a rewritten search when
+it is weak. Every question is traced in Langfuse; quality is measured with a golden set, RAGAS and a
+DeepEval CI gate.
 
-**Try it:** <https://huggingface.co/spaces/SohenP/market-research-ai-agent> (free tier: the first
-request after a quiet spell can take a minute while the Space wakes up).
+![Chat tab: cited answer with a model forecast and a quality verdict](docs/images/ui-chat.jpg)
+
+![Forecast tab: price, realized volatility and the LSTM / HAR forecasts](docs/images/ui-forecast.jpg)
+
+## Quick start
+
+```bash
+cp .env.example .env            # add DEEPSEEK_API_KEY (or OPENAI_API_KEY / ANTHROPIC_API_KEY)
+make docker-up                  # Postgres + the app on http://localhost:7860
+docker compose --profile tools run --rm tools   # load prices, fundamentals and filings (first run)
+```
+
+No Docker? See [Setup](#setup) to run it with `uv`. A public hosted demo is on hold; see
+[Deployment](#deployment-phase-8) for why and what is already built.
+
+## Highlights
 
 | Area | What is in the repo |
 |---|---|
-| Agent | LangGraph route / gather / generate / grade / rewrite loop, provider-agnostic LLM (DeepSeek, OpenAI, Anthropic), prompt-injection guardrails |
-| Retrieval | pgvector + Postgres full-text fused with RRF, section-aware 10-K/10-Q chunking, cross-encoder rerank |
-| Models | PyTorch LSTM vs HAR-RV / GARCH / ARIMA volatility forecasts, scikit-learn direction classifier, MLflow tracking |
-| Evaluation | 38-question golden set, RAGAS dev loop, DeepEval CI gate, retrieval ablation, cost/latency tracking |
-| Observability | Langfuse traces, scores, prompt registry and per-model cost |
-| Serving | FastAPI (+ SSE streaming), Gradio UI, rate limiting, Docker, GitHub Actions CI/CD to a Hugging Face Space |
+| Agent | LangGraph route / gather / generate / grade / rewrite loop with bounded retries; provider-agnostic LLM (DeepSeek, OpenAI, Anthropic); prompt-injection guardrails; verified citations |
+| Retrieval | pgvector + Postgres full-text fused with RRF, section-aware 10-K/10-Q chunking, cross-encoder rerank (NDCG@6 0.59 vs 0.45 for plain hybrid) |
+| Models | PyTorch LSTM beats HAR-RV / GARCH / ARIMA on next-week volatility (Diebold-Mariano p = 0.001); honest, weak direction classifier; MLflow tracking |
+| Evaluation | 38-question golden set; deterministic checks, RAGAS (faithfulness 0.95), DeepEval CI gate; retrieval ablation; about $0.001 per question |
+| Observability | Langfuse traces, scores, prompt registry, per-model cost |
+| Serving | FastAPI (+ SSE streaming), Gradio UI, rate limiting, MCP server, multi-stage Docker image, GitHub Actions CI |
+| BI | Power BI recipe on published forecasts, an out-of-sample backtest and SQL views |
+
+## Documentation
+
+| | |
+|---|---|
+| [Architecture](docs/architecture.md) | system diagram, how one question flows, data flow |
+| [Model card](docs/model-card.md) | forecasting models, protocol, results (including where the LSTM loses) and limitations |
+| [Decision records](docs/adr/) | six short ADRs: retry loop, hybrid retrieval, LLM layer, evaluation, one Postgres, hosting |
+| [Power BI recipe](docs/power-bi.md) | connection, model, DAX measures and three dashboard pages |
+| [Demo script](docs/demo-script.md) | a 90-second walkthrough |
 
 ## Project layout
 
 ```
 src/market_research_agent/
-    data/       # Data ingestion, loading, and preprocessing (SEC filings, price data)
-    models/     # Forecasting model training/inference code
-    agent/      # Agentic RAG orchestration (retrieval, tool-calling, planning)
-    api/        # API layer exposing the assistant (e.g. FastAPI app)
-    eval/       # Evaluation harnesses and metrics for retrieval/forecasting/agent quality
-    viz/        # Plotting and reporting utilities
-tests/          # Unit and integration tests (mirrors src/ layout)
-notebooks/      # Exploratory analysis, not imported by application code
-data/           # Local data files: DVC-tracked, not git-tracked (see Data layer below)
-.github/workflows/  # CI pipelines
-docker-compose.yml  # Local Postgres 16 + pgvector
-dvc-storage/        # Local DVC remote (git-ignored)
+    data/           # ingestion (yfinance, SEC EDGAR), section-aware chunking, schema, BI views
+    models/         # features, baselines, LSTM, classifier, registry, forecast(), publish
+    agent/          # LangGraph agent, retriever, tools, guardrails, prompts, traced service
+    llm/            # provider-agnostic chat models, pricing, response cache
+    observability/  # Langfuse client, scores, prompt registry, experiment logging
+    eval/           # golden set, RAGAS runner, retrieval ablation, deterministic checks
+    api/            # FastAPI app, SSE streaming, rate limiting, health
+    viz/            # Gradio UI, Plotly / Matplotlib charts
+    deploy/         # Hugging Face Space deployer
+    mcp_server.py   # Model Context Protocol server
+tests/              # unit + integration tests; tests/eval is the paid DeepEval gate
+docs/               # architecture, model card, ADRs, Power BI recipe, demo script
+eval/               # golden dataset, thresholds, saved results
+artifacts/models/   # the trained model bundle used for inference (committed, KBs)
+.github/workflows/  # CI, deploy, seed, preflight
+Dockerfile, docker-compose.yml
 ```
 
 ## Setup
@@ -296,34 +326,67 @@ validation respond.
 
 ## Deployment (Phase 8)
 
-Production runs on a free **Hugging Face Docker Space** (the image from the `Dockerfile`) talking to a
-free **Neon** Postgres with pgvector. A Space has no persistent database of its own, which is why the
-corpus lives in Neon.
+**Status: the automation is built and was exercised against Hugging Face, but the public deploy is on
+hold.** Hugging Face now requires a PRO subscription to host Docker (or Gradio) Spaces on free CPU
+hardware, so the deploy step fails with `402 Payment Required` on a free account
+([ADR 0006](docs/adr/0006-hosting-constraints.md)). The project runs end to end locally with one
+command, and the deploy workflow is manual-only until the account can host a Docker Space.
+
+What exists and works:
 
 ```
-GitHub (master) --CI passes--> deploy.yml --> HF Space (builds the Docker image, runs on :7860)
-                                                  |--> Neon Postgres (pgvector) : filings, prices
-                                                  |--> DeepSeek API             : the language model
-                                                  `--> Langfuse                 : traces and scores
+GitHub (master) --> CI: lint, tests, DeepEval gate, Docker build + container smoke test
+                \--> seed-database.yml (weekly + manual) --> Neon Postgres (pgvector): prices, filings, forecasts
+                \--> deploy.yml (manual) --> HF Space: secrets, upload, wait for build, smoke-test /health, UI, /chat
 ```
-
-**Workflows** (`.github/workflows/`):
 
 | Workflow | Trigger | What it does |
 |---|---|---|
 | `ci.yml` | push / PR | lint, tests, DeepEval gate, Docker build + container smoke test |
-| `deploy.yml` | CI green on `master`, or manual | copies secrets into the Space, uploads a minimal build context, waits for the build, smoke-tests `/health`, the UI and one real `/chat` |
-| `seed-database.yml` | manual | runs the ingestion pipeline against the production database (idempotent) |
+| `seed-database.yml` | weekly + manual | runs the ingestion pipeline against the production database and refreshes the published forecasts (idempotent) |
+| `deploy.yml` | manual | copies secrets into the Space, uploads a minimal build context, waits for the build, smoke-tests the live URL |
 | `preflight.yml` | manual | checks the database, pgvector and the Hugging Face token without printing secrets |
 
-**Secrets** (GitHub repo settings; the deploy copies the runtime ones into the Space's own secrets):
-`HF_TOKEN` (fine-grained, write access to the Space), `DATABASE_URL`, `DEEPSEEK_API_KEY`,
-`LANGFUSE_PUBLIC_KEY`, `LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL`. A repository variable
-`SEC_EDGAR_USER_AGENT` ("Your Name you@example.com") is recommended for ingestion.
+**Secrets** (GitHub repo settings): `DATABASE_URL`, `DEEPSEEK_API_KEY`, `LANGFUSE_PUBLIC_KEY`,
+`LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL`, and `HF_TOKEN` (fine-grained, write access) for the deploy.
+A repository variable `SEC_EDGAR_USER_AGENT` ("Your Name you@example.com") is recommended for ingestion.
 
-**First deployment:** run *Seed production database*, then *Deploy to Hugging Face Space*.
-Re-run the seed workflow to refresh the data.
+**Cost:** infrastructure is free (Neon free tier, GitHub Actions); the only variable cost is the LLM,
+about $0.001 per question on DeepSeek, and the app rate-limits clients (`RATE_LIMIT_PER_MINUTE`).
 
-**Cost:** infrastructure is free (HF free CPU Space, Neon free tier). The only variable cost is the
-LLM: about $0.001 per question on DeepSeek, and the app rate-limits clients (`RATE_LIMIT_PER_MINUTE`,
-20 on the Space) to protect it. The Space sleeps after a period of inactivity and wakes on the next visit.
+## MCP server
+
+The same tools are available to any Model Context Protocol client (Claude Desktop, IDE agents):
+
+```bash
+uv sync --extra mcp
+uv run python -m market_research_agent.mcp_server        # stdio; add --http for streamable HTTP
+```
+
+Tools: `search_filings`, `forecast_ticker`, `lookup_market_data` (database and models only) and
+`ask_research_agent` (the full agent; needs an LLM key). Example Claude Desktop entry:
+
+```json
+{ "mcpServers": { "market-research-agent": {
+    "command": "uv", "args": ["run", "python", "-m", "market_research_agent.mcp_server"],
+    "cwd": "/path/to/this/repo" } } }
+```
+
+## What I learned, and what I would do next
+
+**Learned**
+- A grader that can say "this answer isn't supported" is worth more than a clever generator: surfacing
+  `quality_passed` to the user changed how the product behaves, not just how it scores.
+- Measure before believing: plain hybrid retrieval *trailed* dense-only on my data, and the reranker
+  turned out to be the real win; the pooled LSTM beats HAR overall but loses on XOM.
+- Noisy LLM-judge metrics need calibrated thresholds with the reason written down, and cheap
+  deterministic checks (refusals, tool use, numeric facts) catch what judges miss.
+- Serverless databases change engineering details: short transactions, pooler-safe prepared statements, URL normalization.
+- Platform assumptions break (the free-hosting policy changed); keeping deploy automation separate
+  from the app meant the project still ships.
+
+**Next**
+- Run the provider comparison for OpenAI and Anthropic (the harness is ready; only DeepSeek is measured).
+- Enlarge the golden set and have a second person label it; add multi-turn questions and conversation memory.
+- Walk-forward retraining on a schedule with drift monitoring (Evidently), and more tickers.
+- Host publicly (a PRO Hugging Face Space, or the same image on another host) and add authentication.
