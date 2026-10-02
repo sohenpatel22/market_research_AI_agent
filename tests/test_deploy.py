@@ -56,6 +56,33 @@ def test_secrets_and_variables_selection():
     assert not any("KEY" in k or "TOKEN" in k or "URL" in k for k in variables)
 
 
+def test_front_matter_is_ascii_only():
+    space.FRONT_MATTER.encode("ascii")  # no raw emoji: avoids encoding mix-ups on the Hub
+
+
+class HardwareApi:
+    def __init__(self, requested):
+        self.requested, self.calls = requested, []
+
+    def get_space_runtime(self, space_id):
+        return type("R", (), {"requested_hardware": self.requested})()
+
+    def request_space_hardware(self, space_id, hardware):
+        self.calls.append(hardware)
+
+
+def test_ensure_cpu_hardware_switches_gpu_spaces_to_free_cpu():
+    zero_gpu = HardwareApi("zero-a10g")
+    assert space.ensure_cpu_hardware(zero_gpu, "o/n") == "cpu-basic"
+    assert zero_gpu.calls == ["cpu-basic"]
+    already_cpu = HardwareApi("cpu-basic")
+    assert space.ensure_cpu_hardware(already_cpu, "o/n") == "cpu-basic"
+    assert already_cpu.calls == []  # no needless change (it would restart the Space)
+    unset = HardwareApi(None)
+    space.ensure_cpu_hardware(unset, "o/n")
+    assert unset.calls == ["cpu-basic"]
+
+
 class FakeApi:
     def __init__(self, stages):
         self.stages = list(stages)
