@@ -1,7 +1,16 @@
 import datetime as dt
 
 from pgvector.sqlalchemy import Vector
-from sqlalchemy import BigInteger, Date, Float, Integer, String, UniqueConstraint
+from sqlalchemy import (
+    BigInteger,
+    Date,
+    DateTime,
+    Float,
+    Integer,
+    String,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column
 
 from market_research_agent.data.db import Base
@@ -63,3 +72,45 @@ class Document(Base):
     section: Mapped[str | None] = mapped_column(String(64), nullable=True)
     chunk_text: Mapped[str] = mapped_column(String, nullable=False)
     embedding: Mapped[list[float]] = mapped_column(Vector(EMBEDDING_DIM), nullable=False)
+
+
+class ForecastRecord(Base):
+    """A published model forecast (one row per ticker, horizon, as-of date and model version).
+
+    Written by `models.publish` so BI tools (Power BI) can chart the models' output.
+    """
+
+    __tablename__ = "model_forecasts"
+    __table_args__ = (
+        UniqueConstraint("ticker", "horizon", "as_of", "model_version", name="uq_forecast_key"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ticker: Mapped[str] = mapped_column(String(10), index=True, nullable=False)
+    horizon: Mapped[str] = mapped_column(String(2), nullable=False)  # "1w" or "1m"
+    as_of: Mapped[dt.date] = mapped_column(Date, nullable=False)
+    model_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    predicted_vol: Mapped[float | None] = mapped_column(Float, nullable=True)
+    har_baseline_vol: Mapped[float | None] = mapped_column(Float, nullable=True)
+    current_realized_vol: Mapped[float | None] = mapped_column(Float, nullable=True)
+    prob_up: Mapped[float | None] = mapped_column(Float, nullable=True)
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime, server_default=func.now())
+
+
+class VolBacktestRecord(Base):
+    """Volatility forecasts vs what actually happened, per ticker and date (annualized, decimal)."""
+
+    __tablename__ = "vol_backtest"
+    __table_args__ = (
+        UniqueConstraint("ticker", "date", "model_version", name="uq_vol_backtest_key"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ticker: Mapped[str] = mapped_column(String(10), index=True, nullable=False)
+    date: Mapped[dt.date] = mapped_column(Date, index=True, nullable=False)
+    model_version: Mapped[str] = mapped_column(String(32), nullable=False)
+    split: Mapped[str] = mapped_column(String(8), nullable=False)  # train | val | test | gap
+    actual_vol: Mapped[float] = mapped_column(Float, nullable=False)
+    lstm_vol: Mapped[float | None] = mapped_column(Float, nullable=True)
+    har_vol: Mapped[float | None] = mapped_column(Float, nullable=True)
+    naive_vol: Mapped[float | None] = mapped_column(Float, nullable=True)
