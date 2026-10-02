@@ -9,7 +9,11 @@ import argparse
 import logging
 
 from market_research_agent.data.db import init_db, session_scope
-from market_research_agent.data.ingest_filings import ingest_filings
+from market_research_agent.data.ingest_filings import (
+    existing_accessions,
+    insert_filing_rows,
+    prepare_filing_rows,
+)
 from market_research_agent.data.ingest_fundamentals import ingest_fundamentals
 from market_research_agent.data.ingest_prices import ingest_prices
 
@@ -19,10 +23,17 @@ DEFAULT_TICKERS = ["AAPL", "MSFT", "NVDA", "JPM", "XOM"]
 
 
 def ingest_ticker(ticker: str) -> None:
+    # Short transactions only: embedding thousands of chunks takes minutes, and serverless
+    # Postgres (Neon) closes connections that sit idle meanwhile.
     with session_scope() as session:
         n_prices = ingest_prices(session, ticker)
         n_fundamentals = ingest_fundamentals(session, ticker)
-        n_filings = ingest_filings(session, ticker)
+        known = existing_accessions(session)
+
+    rows = prepare_filing_rows(ticker, skip_accessions=known)  # no database connection held
+
+    with session_scope() as session:
+        n_filings = insert_filing_rows(session, rows)
     logger.info(
         "%s: %d price rows, %d fundamental rows, %d filing chunks",
         ticker,
