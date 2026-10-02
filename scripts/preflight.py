@@ -94,6 +94,15 @@ def check_huggingface(space: str | None) -> bool:
             report(FAIL, "the token is read-only; deploying needs a write token")
             return False
 
+        if role == "fineGrained":
+            fine = who["auth"]["accessToken"].get("fineGrained", {}) or {}
+            for scope in fine.get("scoped", []):
+                entity = scope.get("entity", {})
+                perms = ", ".join(scope.get("permissions", [])) or "none"
+                report(OK, f"token scope: {entity.get('type')} '{entity.get('name')}': {perms}")
+            if fine.get("global"):
+                report(OK, f"token global permissions: {', '.join(fine['global'])}")
+
         spaces = list(api.list_spaces(author=name))
         if not spaces:
             report(WARN, f"user '{name}' owns no Spaces yet")
