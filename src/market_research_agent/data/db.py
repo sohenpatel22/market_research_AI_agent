@@ -84,3 +84,10 @@ def init_db(engine: Engine | None = None) -> None:
         for ddl in SEARCH_DDL:
             conn.execute(text(ddl))
         conn.commit()
+
+    from market_research_agent.data.views import BI_VIEWS
+
+    with engine.connect() as conn:
+        for ddl in BI_VIEWS:
+            conn.execute(text(ddl))
+        conn.commit()
