@@ -22,9 +22,9 @@ jobs:
     timeout-minutes: 45
     environment:
       name: hugging-face-space
-      url: https://huggingface.co/spaces/SohenP/market-research-agent
+      url: https://huggingface.co/spaces/SohenP/market-research-ai-agent
     env:
-      SPACE_ID: SohenP/market-research-agent
+      SPACE_ID: SohenP/market-research-ai-agent
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}

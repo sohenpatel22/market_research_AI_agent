@@ -128,3 +128,27 @@ def test_smoke_test_requires_an_ok_health_and_the_ui(monkeypatch):
     monkeypatch.setattr(space.httpx, "get", serve(degraded))
     with pytest.raises(RuntimeError, match="degraded"):
         space.smoke_test("https://x.hf.space", attempts=1)
+
+
+def test_ensure_space_creates_a_docker_cpu_space_idempotently():
+    calls = []
+
+    class Api:
+        def create_repo(self, space_id, **kwargs):
+            calls.append((space_id, kwargs))
+
+    space.ensure_space(Api(), "o/n")
+    assert len(calls) == 1
+    space_id, kwargs = calls[0]
+    assert space_id == "o/n"
+    assert kwargs["repo_type"] == "space" and kwargs["space_sdk"] == "docker"
+    assert kwargs["space_hardware"] == "cpu-basic" and kwargs["exist_ok"] is True
+
+
+def test_unfixable_hardware_gives_an_actionable_error():
+    class Api(HardwareApi):
+        def request_space_hardware(self, space_id, hardware):
+            raise RuntimeError("402 Payment Required")
+
+    with pytest.raises(RuntimeError, match="PRO subscription"):
+        space.ensure_cpu_hardware(Api("zero-a10g"), "o/n")
