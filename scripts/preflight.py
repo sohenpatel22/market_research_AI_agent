@@ -124,12 +124,15 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--space", help="expected Space id, e.g. owner/market-research-agent")
     parser.add_argument("--require-data", action="store_true", help="fail if tables are empty")
+    parser.add_argument("--skip-hf", action="store_true", help="only check the database")
     args = parser.parse_args()
 
     print("== Database ==")
     db_ok = check_database(args.require_data)
-    print("== Hugging Face ==")
-    hf_ok = check_huggingface(args.space)
+    hf_ok = True
+    if not args.skip_hf:
+        print("== Hugging Face ==")
+        hf_ok = check_huggingface(args.space)
     print("\nPreflight:", "PASSED" if db_ok and hf_ok else "FAILED")
     return 0 if db_ok and hf_ok else 1
 
