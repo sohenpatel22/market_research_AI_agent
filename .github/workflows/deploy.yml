@@ -1,0 +1,50 @@
+name: Deploy to Hugging Face Space
+
+# Runs after CI succeeds on master (and on demand). It copies the runtime secrets into the Space,
+# uploads a minimal build context, waits for Hugging Face to build and start the container, and
+# then smoke-tests the live URL (/health, the UI and one real /chat question).
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+    branches: [master]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-space
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    # Only deploy a green build of master (or a manual run).
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment:
+      name: hugging-face-space
+      url: https://huggingface.co/spaces/SohenP/market-research-agent
+    env:
+      SPACE_ID: SohenP/market-research-agent
+      HF_TOKEN: ${{ secrets.HF_TOKEN }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+      LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+      LANGFUSE_BASE_URL: ${{ secrets.LANGFUSE_BASE_URL }}
+      UV_LINK_MODE: copy
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - run: uv python install 3.11
+      - run: uv sync --no-dev
+
+      - name: Deploy and smoke-test
+        env:
+          GIT_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+        run: uv run python -m market_research_agent.deploy.space --space "$SPACE_ID" --chat-smoke
