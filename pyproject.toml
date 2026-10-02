@@ -63,6 +63,9 @@ dev = [
     "pytest-cov>=6.0.0",
     "dvc>=3.67.1",
 ]
+mcp = [
+    "mcp>=2.3.0",
+]
 
 [build-system]
 requires = ["hatchling==1.25.0"]

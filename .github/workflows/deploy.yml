@@ -1,13 +1,18 @@
 name: Deploy to Hugging Face Space
 
-# Runs after CI succeeds on master (and on demand). It copies the runtime secrets into the Space,
-# uploads a minimal build context, waits for Hugging Face to build and start the container, and
-# then smoke-tests the live URL (/health, the UI and one real /chat question).
+# Copies the runtime secrets into the Space, uploads a minimal build context, waits for Hugging
+# Face to build and start the container, then smoke-tests the live URL (/health, the UI and one
+# real /chat question).
+#
+# MANUAL ONLY for now: Hugging Face requires a PRO subscription to host Docker Spaces on free CPU
+# hardware, so this fails with "402 Payment Required" on a free account. Once the account can host
+# one, re-enable the automatic trigger by adding this under `on:` and pushing:
+#
+#   workflow_run:
+#     workflows: ["CI"]
+#     types: [completed]
+#     branches: [master]
 on:
-  workflow_run:
-    workflows: ["CI"]
-    types: [completed]
-    branches: [master]
   workflow_dispatch:
 
 concurrency:
