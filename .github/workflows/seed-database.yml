@@ -46,5 +46,8 @@ jobs:
           TICKERS: ${{ inputs.tickers || 'AAPL MSFT NVDA JPM XOM' }}
         run: uv run python -m market_research_agent.data.ingest --tickers $TICKERS
 
+      - name: Publish model forecasts and the backtest for BI dashboards
+        run: uv run python -m market_research_agent.models.publish
+
       - name: Verify the database is populated
         run: uv run python scripts/preflight.py --require-data --skip-hf
