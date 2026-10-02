@@ -1,14 +1,14 @@
 # Market Research Agent
 
 [![CI](https://github.com/sohenpatel22/market_research_AI_agent/actions/workflows/ci.yml/badge.svg)](https://github.com/sohenpatel22/market_research_AI_agent/actions/workflows/ci.yml)
-[![Live demo](https://img.shields.io/badge/demo-Hugging%20Face%20Space-yellow)](https://huggingface.co/spaces/SohenP/market-research-agent)
+[![Live demo](https://img.shields.io/badge/demo-Hugging%20Face%20Space-yellow)](https://huggingface.co/spaces/SohenP/market-research-ai-agent)
 
 An agentic RAG assistant over SEC filings and stock prices. It routes a plain-English question,
 retrieves filing excerpts (hybrid vector + keyword search with a cross-encoder reranker), calls
 trained volatility/direction forecasters and whitelisted SQL lookups, drafts a cited answer, and has
 a judge model verify it against the sources, retrying with a rewritten search when it is weak.
 
-**Try it:** <https://huggingface.co/spaces/SohenP/market-research-agent> (free tier: the first
+**Try it:** <https://huggingface.co/spaces/SohenP/market-research-ai-agent> (free tier: the first
 request after a quiet spell can take a minute while the Space wakes up).
 
 | Area | What is in the repo |
