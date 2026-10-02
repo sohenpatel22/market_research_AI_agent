@@ -21,7 +21,7 @@ import httpx
 
 FRONT_MATTER = """---
 title: Market Research Agent
-emoji: 📈
+emoji: "\\U0001F4C8"
 colorFrom: blue
 colorTo: green
 sdk: docker
@@ -99,6 +99,21 @@ def sync_files(api, space_id: str, bundle: Path, message: str) -> None:
     api.create_commit(
         repo_id=space_id, repo_type="space", operations=operations, commit_message=message
     )
+
+
+def ensure_cpu_hardware(api, space_id: str) -> str:
+    """Make sure the Space runs on free CPU hardware.
+
+    A Space created with another hardware choice (e.g. ZeroGPU, which only exists for the Gradio
+    SDK) ends in CONFIG_ERROR once it becomes a Docker Space. Returns the hardware in effect.
+    """
+    runtime = api.get_space_runtime(space_id)
+    requested = str(getattr(runtime, "requested_hardware", None) or "")
+    if requested.startswith("cpu"):
+        return requested
+    api.request_space_hardware(space_id, "cpu-basic")
+    print(f"  hardware was '{requested or 'unset'}'; switched to cpu-basic (free)")
+    return "cpu-basic"
 
 
 def wait_until_running(api, space_id: str, timeout_s: int, poll_s: int = 15) -> str:
@@ -181,6 +196,7 @@ def deploy(
         raise SystemExit(f"Missing required secrets: {', '.join(missing)}")
 
     print(f"Deploying {git_sha[:8]} to {space_id}")
+    ensure_cpu_hardware(api, space_id)
     # Secrets/variables first: uploading files is what triggers the (single) build.
     for key, value in secrets.items():
         api.add_space_secret(space_id, key, value)
