@@ -148,7 +148,7 @@ def test_ensure_space_creates_a_docker_cpu_space_idempotently():
 def test_unfixable_hardware_gives_an_actionable_error():
     class Api(HardwareApi):
         def request_space_hardware(self, space_id, hardware):
-            raise RuntimeError("402 Payment Required")
+            raise RuntimeError("hardware change not allowed")
 
-    with pytest.raises(RuntimeError, match="PRO subscription"):
+    with pytest.raises(RuntimeError, match="account plan"):
         space.ensure_cpu_hardware(Api("zero-a10g"), "o/n")

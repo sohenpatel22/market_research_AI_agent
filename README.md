@@ -21,8 +21,8 @@ make docker-up                  # Postgres + the app on http://localhost:7860
 docker compose --profile tools run --rm tools   # load prices, fundamentals and filings (first run)
 ```
 
-No Docker? See [Setup](#setup) to run it with `uv`. A public hosted demo is on hold; see
-[Deployment](#deployment-phase-8) for why and what is already built.
+No Docker? See [Setup](#setup) to run it with `uv`. Hosted deployment is described under
+[Deployment](#deployment-phase-8).
 
 ## Highlights
 
@@ -128,7 +128,7 @@ AAPL, MSFT, NVDA, JPM, XOM) does the following per ticker:
    sentence-transformer (no external embedding API), and upserts everything into Postgres.
 
 Every raw response (price CSVs, fundamentals CSVs, filing HTML) is cached under `data/raw/` on
-first fetch, so re-running ingestion is cheap and doesn't re-hit yfinance/EDGAR. All inserts are
+first fetch, so re-running ingestion is fast and doesn't re-hit yfinance/EDGAR. All inserts are
 idempotent (`ON CONFLICT DO NOTHING` on the natural key), so re-running ingestion is also safe
 against the database.
 
@@ -217,7 +217,7 @@ tagged with provider, model and git sha, plus scores (`quality_passed`, `grade_s
 
 Keeping LLM spend low:
 
-* one cheap model for both agent and judge by default (DeepSeek); a typical full question is
+* a single cost-efficient model for both agent and judge by default (DeepSeek); a typical full question is
   about 5k tokens, and a refusal costs about 1k;
 * `LLM_CACHE=true` caches identical calls on disk, so re-running evals/dev questions is free;
 * the grade/retry loop is capped (`AGENT_MAX_RETRIES=2`), and forecasts/SQL lookups run once per
@@ -300,13 +300,13 @@ grading call and the RAGAS judge are DeepSeek in every run. Cost per question in
 | Claude Sonnet 5.5 | $0.0111 | 0.916 | 0.797 | 0.900 | 100% | 100% | 0 | 6.9 s |
 
 The whole comparison cost about $1.40 (agent $1.16, RAGAS judge $0.27). What it shows:
-- **Cheapest was not best.** GPT-4o mini is the cheapest but wrongly refused 4 legitimate filing questions
+- **Lowest unit cost did not give the best outcome.** GPT-4o mini has the lowest cost but wrongly refused 4 legitimate filing questions
   ("not related to financial performance"), which also cost it citations, and it picked a stale quarter
   for one fundamentals lookup. Cost per *correct* answer, not per call, is the number that matters.
 - **Paying more did not buy faithfulness here.** Sonnet 5.5 costs about 14x DeepSeek per question for the same
   faithfulness (0.916 vs 0.908); Haiku 4.5 costs about 5.6x for +0.026, within noise.
-- **DeepSeek holds up as the default**: every deterministic check passed at the lowest cost of the models that
-  never over-refused.
+- **DeepSeek is a well-supported default**: every deterministic check passed, at the lowest cost among the models
+  that never over-refused.
 - **Caveats, stated plainly:** RAGAS ran on only 20 filing questions with one run per model, so gaps of a few
   hundredths are noise; the judge is DeepSeek, which may favour its own phrasing (not tested); prices are list
   prices as of 2026-10-02.
@@ -378,11 +378,10 @@ validation respond.
 
 ## Deployment (Phase 8)
 
-**Status: the automation is built and was exercised against Hugging Face, but the public deploy is on
-hold.** Hugging Face now requires a PRO subscription to host Docker (or Gradio) Spaces on free CPU
-hardware, so the deploy step fails with `402 Payment Required` on a free account
-([ADR 0006](docs/adr/0006-hosting-constraints.md)). The project runs end to end locally with one
-command, and the deploy workflow is manual-only until the account can host a Docker Space.
+**Status: deployment automation is implemented; public hosting is deferred pending the choice of a
+hosting platform** ([ADR 0006](docs/adr/0006-hosting-constraints.md)). The container image, the production
+database and the deploy workflow are in place and were validated up to the platform's account requirements.
+The application runs end to end locally with a single command, and the deploy workflow is triggered manually.
 
 What exists and works:
 
@@ -431,14 +430,14 @@ Tools: `search_filings`, `forecast_ticker`, `lookup_market_data` (database and m
   `quality_passed` to the user changed how the product behaves, not just how it scores.
 - Measure before believing: plain hybrid retrieval *trailed* dense-only on my data, and the reranker
   turned out to be the real win; the pooled LSTM beats HAR overall but loses on XOM.
-- Noisy LLM-judge metrics need calibrated thresholds with the reason written down, and cheap
+- Noisy LLM-judge metrics need calibrated thresholds with the reason written down, and inexpensive
   deterministic checks (refusals, tool use, numeric facts) catch what judges miss.
 - Serverless databases change engineering details: short transactions, pooler-safe prepared statements, URL normalization.
-- Platform assumptions break (the free-hosting policy changed); keeping deploy automation separate
-  from the app meant the project still ships.
+- Platform constraints can change; keeping deployment automation separate from the application kept
+  the project deliverable.
 
 **Next**
 - Run the provider comparison for OpenAI and Anthropic (the harness is ready; only DeepSeek is measured).
 - Enlarge the golden set and have a second person label it; add multi-turn questions and conversation memory.
 - Walk-forward retraining on a schedule with drift monitoring (Evidently), and more tickers.
-- Host publicly (a PRO Hugging Face Space, or the same image on another host) and add authentication.
+- Publish a hosted demo (a Hugging Face Space or another container host) and add authentication.
