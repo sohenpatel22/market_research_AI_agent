@@ -1,0 +1,72 @@
+name: Retrain models
+
+# Monthly walk-forward retraining: compare a challenger with the current model on the most recent
+# trading days and open a pull request with a new bundle only if the challenger is clearly better.
+on:
+  schedule:
+    - cron: "23 6 1 * *"
+  workflow_dispatch:
+    inputs:
+      holdout_days:
+        description: "Trading days held out for the comparison"
+        default: "60"
+      min_gain:
+        description: "Required QLIKE improvement (0.02 = 2%)"
+        default: "0.02"
+      dry_run:
+        description: "Evaluate only, do not save a bundle"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  actions: write
+
+jobs:
+  retrain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+      LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+      LANGFUSE_BASE_URL: ${{ secrets.LANGFUSE_BASE_URL }}
+      UV_LINK_MODE: copy
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - run: uv python install 3.11
+      - run: uv sync --extra train
+
+      - name: Retrain and compare
+        id: retrain
+        env:
+          HOLDOUT_DAYS: ${{ inputs.holdout_days || '60' }}
+          MIN_GAIN: ${{ inputs.min_gain || '0.02' }}
+          DRY_RUN: ${{ inputs.dry_run && '--dry-run' || '' }}
+        run: |
+          uv run python -m market_research_agent.models.retrain \
+            --holdout-days "$HOLDOUT_DAYS" --min-gain "$MIN_GAIN" $DRY_RUN --report retrain_report.md
+          cat retrain_report.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Open a pull request with the new bundle
+        if: steps.retrain.outputs.promoted == 'true'
+        run: |
+          branch="retrain/$(date +%Y%m%d)"
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add artifacts/models
+          git commit -m "Retrain models ($(date +%Y-%m-%d))"
+          git push origin "$branch"
+          gh pr create --base master --head "$branch" \
+            --title "Retrain models ($(date +%Y-%m-%d))" --body-file retrain_report.md \
+            || echo "Pull request not created; open one from branch $branch."
+          # Pull requests opened with the workflow token do not start CI, so start it explicitly.
+          gh workflow run ci.yml --ref "$branch" || true
