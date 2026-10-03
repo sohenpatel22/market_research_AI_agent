@@ -1,26 +1,26 @@
 {
   "k": 6,
-  "n_questions": 23,
+  "n_questions": 50,
   "summary": {
     "dense": {
-      "ndcg@6": 0.48318668491169564,
-      "recall@6": 0.8260869565217391,
-      "mrr": 0.605072463768116
+      "ndcg@6": 0.46107735406035616,
+      "recall@6": 0.78,
+      "mrr": 0.5766666666666665
     },
     "sparse": {
-      "ndcg@6": 0.25029736624640136,
-      "recall@6": 0.5217391304347826,
-      "mrr": 0.33260869565217394
+      "ndcg@6": 0.28416563889365287,
+      "recall@6": 0.52,
+      "mrr": 0.3546666666666667
     },
     "hybrid": {
-      "ndcg@6": 0.44740234033271375,
-      "recall@6": 0.782608695652174,
-      "mrr": 0.5702898550724638
+      "ndcg@6": 0.4390470023008688,
+      "recall@6": 0.74,
+      "mrr": 0.5706666666666667
     },
     "hybrid+rerank": {
-      "ndcg@6": 0.5906972024492319,
-      "recall@6": 0.9130434782608695,
-      "mrr": 0.7717391304347826
+      "ndcg@6": 0.5590752234638363,
+      "recall@6": 0.82,
+      "mrr": 0.745
     }
   },
   "per_item": {
@@ -116,6 +116,114 @@
       "filings-23": {
         "ndcg": 0.6388,
         "rank": 1
+      },
+      "filings-24": {
+        "ndcg": 0.403,
+        "rank": 2
+      },
+      "filings-25": {
+        "ndcg": 0.7623,
+        "rank": 1
+      },
+      "filings-26": {
+        "ndcg": 0.403,
+        "rank": 2
+      },
+      "filings-27": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-28": {
+        "ndcg": 0.5627,
+        "rank": 2
+      },
+      "filings-29": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-30": {
+        "ndcg": 0.403,
+        "rank": 2
+      },
+      "filings-31": {
+        "ndcg": 0.7623,
+        "rank": 1
+      },
+      "filings-32": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-33": {
+        "ndcg": 0.3194,
+        "rank": 3
+      },
+      "filings-34": {
+        "ndcg": 0.3987,
+        "rank": 4
+      },
+      "filings-35": {
+        "ndcg": 0.1376,
+        "rank": null
+      },
+      "filings-36": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-37": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-38": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-39": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-40": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-41": {
+        "ndcg": 0.403,
+        "rank": 2
+      },
+      "filings-42": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-43": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-44": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-45": {
+        "ndcg": 0.3194,
+        "rank": 3
+      },
+      "filings-46": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-47": {
+        "ndcg": 0.7763,
+        "rank": 1
+      },
+      "filings-48": {
+        "ndcg": 0.86,
+        "rank": 2
+      },
+      "filings-49": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-50": {
+        "ndcg": 0.3194,
+        "rank": null
       }
     },
     "sparse": {
@@ -210,6 +318,114 @@
       "filings-23": {
         "ndcg": 0.6388,
         "rank": 1
+      },
+      "filings-24": {
+        "ndcg": 0.2751,
+        "rank": 4
+      },
+      "filings-25": {
+        "ndcg": 0.3194,
+        "rank": 3
+      },
+      "filings-26": {
+        "ndcg": 0.7623,
+        "rank": 1
+      },
+      "filings-27": {
+        "ndcg": 0.7985,
+        "rank": 1
+      },
+      "filings-28": {
+        "ndcg": 0.4766,
+        "rank": 4
+      },
+      "filings-29": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-30": {
+        "ndcg": 0.403,
+        "rank": 2
+      },
+      "filings-31": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-32": {
+        "ndcg": 0.3987,
+        "rank": 4
+      },
+      "filings-33": {
+        "ndcg": 0.2015,
+        "rank": null
+      },
+      "filings-34": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-35": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-36": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-37": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-38": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-39": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-40": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-41": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-42": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-43": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-44": {
+        "ndcg": 0.403,
+        "rank": 2
+      },
+      "filings-45": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-46": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-47": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-48": {
+        "ndcg": 0.8999,
+        "rank": 1
+      },
+      "filings-49": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-50": {
+        "ndcg": 0.3194,
+        "rank": null
       }
     },
     "hybrid": {
@@ -304,6 +520,114 @@
       "filings-23": {
         "ndcg": 0.6388,
         "rank": 1
+      },
+      "filings-24": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-25": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-26": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-27": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-28": {
+        "ndcg": 0.5406,
+        "rank": 2
+      },
+      "filings-29": {
+        "ndcg": 0.4332,
+        "rank": 3
+      },
+      "filings-30": {
+        "ndcg": 0.403,
+        "rank": 2
+      },
+      "filings-31": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-32": {
+        "ndcg": 0.8403,
+        "rank": 1
+      },
+      "filings-33": {
+        "ndcg": 0.443,
+        "rank": 3
+      },
+      "filings-34": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-35": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-36": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-37": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-38": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-39": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-40": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-41": {
+        "ndcg": 0.2751,
+        "rank": 4
+      },
+      "filings-42": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-43": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-44": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-45": {
+        "ndcg": 0.403,
+        "rank": 2
+      },
+      "filings-46": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-47": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-48": {
+        "ndcg": 0.9779,
+        "rank": 1
+      },
+      "filings-49": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-50": {
+        "ndcg": 0.3194,
+        "rank": null
       }
     },
     "hybrid+rerank": {
@@ -398,6 +722,114 @@
       "filings-23": {
         "ndcg": 0.6388,
         "rank": 1
+      },
+      "filings-24": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-25": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-26": {
+        "ndcg": 0.8403,
+        "rank": 1
+      },
+      "filings-27": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-28": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-29": {
+        "ndcg": 0.7985,
+        "rank": 1
+      },
+      "filings-30": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-31": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-32": {
+        "ndcg": 0.7526,
+        "rank": 1
+      },
+      "filings-33": {
+        "ndcg": 0.5627,
+        "rank": 2
+      },
+      "filings-34": {
+        "ndcg": 0.7526,
+        "rank": 1
+      },
+      "filings-35": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-36": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-37": {
+        "ndcg": 0.7763,
+        "rank": 1
+      },
+      "filings-38": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-39": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-40": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-41": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-42": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-43": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-44": {
+        "ndcg": 0.7623,
+        "rank": 1
+      },
+      "filings-45": {
+        "ndcg": 0.6388,
+        "rank": 1
+      },
+      "filings-46": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-47": {
+        "ndcg": 0.7763,
+        "rank": 1
+      },
+      "filings-48": {
+        "ndcg": 1.0,
+        "rank": 1
+      },
+      "filings-49": {
+        "ndcg": 0.0,
+        "rank": null
+      },
+      "filings-50": {
+        "ndcg": 0.3194,
+        "rank": null
       }
     }
   }
