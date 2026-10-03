@@ -57,3 +57,21 @@ def test_engine_options_for_local_and_pooled_hosts():
     assert local["connect_args"] == {"connect_timeout": 30} and local["pool_pre_ping"]
     pooled = engine_options("postgresql+psycopg://u:p@ep-cool-123-pooler.neon.tech/db")
     assert pooled["connect_args"]["prepare_threshold"] is None
+
+
+def test_claude_5_models_are_built_without_an_explicit_temperature(monkeypatch):
+    import langchain_anthropic
+
+    calls = []
+
+    class Recorder:
+        def __init__(self, **kwargs):
+            calls.append(kwargs)
+
+    monkeypatch.setattr(langchain_anthropic, "ChatAnthropic", Recorder)
+    cfg = make_settings(anthropic_api_key="k")
+    for model in ("claude-sonnet-5-5", "claude-opus-5-5", "claude-fable-5-1"):
+        get_chat_model("anthropic", model, cfg=cfg)
+    get_chat_model("anthropic", "claude-haiku-4-5-20251001", cfg=cfg)
+    assert all("temperature" not in c for c in calls[:3])
+    assert calls[3]["temperature"] == 0.0  # models that accept it keep the deterministic setting
