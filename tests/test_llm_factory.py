@@ -59,25 +59,19 @@ def test_engine_options_for_local_and_pooled_hosts():
     assert pooled["connect_args"]["prepare_threshold"] is None
 
 
-def test_anthropic_models_that_reject_temperature_fall_back_to_the_default(monkeypatch):
+def test_claude_5_models_are_built_without_an_explicit_temperature(monkeypatch):
     import langchain_anthropic
 
     calls = []
 
-    class Strict:
+    class Recorder:
         def __init__(self, **kwargs):
             calls.append(kwargs)
-            if "temperature" in kwargs:
-                raise ValueError("`temperature` is not supported for this model")
 
-    monkeypatch.setattr(langchain_anthropic, "ChatAnthropic", Strict)
-    get_chat_model("anthropic", "claude-sonnet-5-5", cfg=make_settings(anthropic_api_key="k"))
-    assert "temperature" in calls[0] and "temperature" not in calls[1]
-
-    class Broken:
-        def __init__(self, **kwargs):
-            raise ValueError("something else entirely")
-
-    monkeypatch.setattr(langchain_anthropic, "ChatAnthropic", Broken)
-    with pytest.raises(ValueError, match="something else"):
-        get_chat_model("anthropic", cfg=make_settings(anthropic_api_key="k"))
+    monkeypatch.setattr(langchain_anthropic, "ChatAnthropic", Recorder)
+    cfg = make_settings(anthropic_api_key="k")
+    for model in ("claude-sonnet-5-5", "claude-opus-5-5", "claude-fable-5-1"):
+        get_chat_model("anthropic", model, cfg=cfg)
+    get_chat_model("anthropic", "claude-haiku-4-5-20251001", cfg=cfg)
+    assert all("temperature" not in c for c in calls[:3])
+    assert calls[3]["temperature"] == 0.0  # models that accept it keep the deterministic setting
