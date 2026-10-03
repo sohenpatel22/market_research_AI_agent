@@ -4,6 +4,7 @@ The grade/rewrite loop is bounded by `max_retries` (and a LangGraph recursion li
 never run forever. Every LLM call returns a Pydantic object via structured output.
 """
 
+import math
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, field
 from typing import Any, TypedDict
@@ -186,15 +187,30 @@ def build_graph(deps: Dependencies, checkpointer: Any | bool | None = None):
             )
         }
 
+    def retrieve_filings(query: str, tickers: list[str]) -> list[RetrievedChunk]:
+        """Filing search. With several companies, search each one separately and interleave the
+        results so every company is represented (one company's text can otherwise fill all of
+        the top-k slots and make a comparison impossible)."""
+        if len(tickers) <= 1:
+            return deps.retrieve(query, tickers or None, None, deps.top_k)
+        per_company = max(2, math.ceil(deps.top_k / len(tickers)))
+        groups = [deps.retrieve(query, [t], None, per_company) for t in tickers]
+        merged: list[RetrievedChunk] = []
+        seen: set[int] = set()
+        for rank in range(per_company):
+            for group in groups:
+                if rank < len(group) and group[rank].id not in seen:
+                    seen.add(group[rank].id)
+                    merged.append(group[rank])
+        return merged
+
     def gather(state: AgentState) -> dict:
         r = state["route"]
         out: dict = {}
         errors = list(state.get("tool_errors", []))
         if r.use_filings:
             try:
-                out["retrieved_docs"] = deps.retrieve(
-                    state["search_query"], r.tickers or None, None, deps.top_k
-                )
+                out["retrieved_docs"] = retrieve_filings(state["search_query"], r.tickers)
             except Exception as e:  # noqa: BLE001
                 errors.append(f"filing search failed: {e}")
                 out["retrieved_docs"] = []
