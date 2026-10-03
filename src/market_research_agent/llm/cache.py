@@ -1,9 +1,4 @@
-"""Tiny persistent LLM response cache (SQLite).
-
-Identical (prompt, model settings) calls return the stored response instead of hitting the API,
-so re-running evals or repeating a dev question costs nothing. Only sensible for temperature-0
-calls; enable with LLM_CACHE=true.
-"""
+"""Tiny persistent LLM response cache (SQLite)"""
 
 import sqlite3
 from functools import lru_cache

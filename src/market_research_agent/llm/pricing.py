@@ -1,10 +1,4 @@
-"""Approximate USD prices per 1M tokens, used to report eval cost. Update when providers change.
-
-DeepSeek: https://api-docs.deepseek.com/quick_start/pricing (peak rate; off-peak is half).
-Anthropic: https://platform.claude.com/docs/en/about-claude/pricing (checked 2026-10-02).
-OpenAI: list prices from third-party summaries (openai.com blocks automated fetches); verify
-before quoting them anywhere.
-"""
+"""Approximate USD prices per 1M tokens, used to report eval cost"""
 
 # model name -> (input, cached input, output) USD per 1M tokens
 PRICES: dict[str, tuple[float, float, float]] = {
@@ -23,7 +17,7 @@ PRICES: dict[str, tuple[float, float, float]] = {
 
 
 def estimate_cost(usage_by_model: dict[str, dict]) -> float:
-    """Cost of a `UsageMetadataCallbackHandler.usage_metadata` dict. Unknown models cost 0."""
+    """Cost of a `UsageMetadataCallbackHandler.usage_metadata` dict"""
     total = 0.0
     for model, u in usage_by_model.items():
         price = PRICES.get(model)
