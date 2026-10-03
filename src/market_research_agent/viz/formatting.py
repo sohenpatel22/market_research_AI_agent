@@ -1,4 +1,4 @@
-"""Turn agent/forecast results into the Markdown and table rows the UI displays."""
+"""Turn agent/forecast results into the Markdown and table rows the UI displays"""
 
 from market_research_agent.agent.schemas import AgentAnswer
 from market_research_agent.models.forecast import ForecastResult
@@ -17,7 +17,7 @@ SOURCE_COLUMNS = ["#", "Company", "Filing", "Filed", "Section", "Excerpt"]
 
 
 def step_markdown(done: list[str]) -> str:
-    """A checklist of the agent's progress so far."""
+    """A checklist of the agent's progress so far"""
     if not done:
         return "Starting..."
     lines = [f"- {STEP_LABELS.get(n, n)}" for n in done]
@@ -54,7 +54,7 @@ def forecast_markdown(result: ForecastResult) -> str:
 
 
 def facts_markdown(answer: AgentAnswer) -> str:
-    """Forecasts and database lookups the agent used, plus any tool problems."""
+    """Forecasts and database lookups the agent used, plus any tool problems"""
     parts = []
     for f in answer.forecasts:
         parts.append(forecast_markdown(f))

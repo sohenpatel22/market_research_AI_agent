@@ -1,8 +1,4 @@
-"""FastAPI application: /chat, /chat/stream, /forecast, /tickers and /health (+ the Gradio UI).
-
-Run locally:   uv run python -m market_research_agent.api
-Interactive docs at /docs. The UI is mounted at / when `with_ui=True` (the default).
-"""
+"""FastAPI application: /chat, /chat/stream, /forecast, /tickers and /health (+ the Gradio UI)"""
 
 import logging
 import time
@@ -97,7 +93,7 @@ def create_app(
         dependencies=[Depends(rate_limited)],
     )
     async def chat(req: ChatRequest) -> ChatResponse:
-        """Answer a question with citations, forecasts and data lookups."""
+        """Answer a question with citations, forecasts and data lookups"""
         session_id = req.session_id or uuid.uuid4().hex
         started = time.perf_counter()
         try:
@@ -115,7 +111,7 @@ def create_app(
 
     @app.post("/chat/stream", tags=["agent"], dependencies=[Depends(rate_limited)])
     async def chat_stream(req: ChatRequest) -> StreamingResponse:
-        """Server-Sent Events: `step` events as the agent works, then one `final` event."""
+        """Server-Sent Events: `step` events as the agent works, then one `final` event"""
         session_id = req.session_id or uuid.uuid4().hex
         try:
             deps, graph = runtime.deps, runtime.graph
@@ -151,7 +147,7 @@ def create_app(
         dependencies=[Depends(rate_limited)],
     )
     async def forecast_endpoint(req: ForecastRequest) -> ForecastResult:
-        """Run the trained models: 1w = next-week volatility, 1m = direction probability."""
+        """Run the trained models: 1w = next-week volatility, 1m = direction probability"""
         try:
             return await run_in_threadpool(forecast, req.ticker, req.horizon)
         except ForecastError as exc:

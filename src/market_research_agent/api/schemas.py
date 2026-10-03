@@ -1,4 +1,4 @@
-"""Request/response models for the HTTP API."""
+"""Request/response models for the HTTP API"""
 
 import re
 from typing import Literal
