@@ -70,15 +70,34 @@ def test_rate_ignores_not_applicable():
 
 def test_golden_dataset_is_well_formed():
     items = load_golden()
-    assert 30 <= len(items) <= 50
+    assert 60 <= len(items) <= 150
     assert len({i.id for i in items}) == len(items)
+    sources = [(i.source.accession_number, i.source.chunk_index) for i in items if i.source]
+    assert len(sources) == len(set(sources)), "two questions share a ground-truth chunk"
     for i in items:
         if i.category == "filings":
             assert i.source and i.key_facts and i.expected_tickers
+        if i.category == "multi_source":
+            assert len(i.expected_tickers) >= 2
+        if i.category == "mixed":
+            assert i.expected_forecasts or i.expects_data
+        if i.category == "forecast":
+            assert i.expected_forecasts and i.expected_tickers
         if i.category in ("out_of_scope", "adversarial"):
             assert i.should_refuse
+        if i.category == "unanswerable":
+            assert not i.should_refuse and not i.key_facts
     cats = {i.category for i in items}
-    assert cats == {"filings", "forecast", "data", "out_of_scope", "adversarial"}
+    assert cats == {
+        "filings",
+        "multi_source",
+        "mixed",
+        "forecast",
+        "data",
+        "unanswerable",
+        "out_of_scope",
+        "adversarial",
+    }
     ci_ids = set(load_thresholds()["deepeval"]["ci_items"])
     assert ci_ids <= {i.id for i in items}
 
