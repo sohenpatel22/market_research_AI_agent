@@ -261,6 +261,8 @@ The earlier 38-question run is kept as `eval/results/deepseek-flash-n38.json`.
 **What the expanded set found (and the baseline does not hide):**
 - **Cross-company comparisons:** only 4 of 6 cited both companies (`multi_source_rate` 0.67). In the
   failures all six retrieved excerpts came from one company, so the agent said it could not compare.
+  **Fixed:** multi-company questions now search each company separately and interleave the results
+  (`agent/graph.py`); re-running the multi-source, mixed and forecast questions gives 6/6 (rate 1.0).
 - One answer gave no citation (an XOM 10-Q question where retrieval returned only XBRL tables), and one
   forecast question ended with "I could not produce a valid answer" after two retries (on the final
   pass the provider returned no usable structured output).
