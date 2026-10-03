@@ -1,14 +1,4 @@
-"""Publish model output to Postgres so BI tools (Power BI) can chart it.
-
-Two tables are (re)written, idempotently:
-
-* ``model_forecasts``: the latest 1-week volatility and 1-month direction forecast per ticker.
-* ``vol_backtest``: LSTM / HAR-RV / persistence volatility forecasts vs realized volatility for
-  every date, labelled with the train / val / test split, so dashboards show out-of-sample accuracy.
-
-Usage:
-    uv run python -m market_research_agent.models.publish
-"""
+"""Publish model output to Postgres so BI tools (Power BI) can chart it"""
 
 import argparse
 import logging
@@ -31,12 +21,7 @@ HORIZONS = ("1w", "1m")
 
 
 def backtest_frame(prices: pd.DataFrame, bundle: dict) -> pd.DataFrame:
-    """Volatility forecasts vs realized, for every date where all of them are defined.
-
-    `prices` has columns ticker, date, high, low, adj_close, volume. Values are annualized
-    volatilities as decimals (0.25 = 25%). The split labels use the same chronological split and
-    purge gap as training, so 'test' rows are genuinely out-of-sample.
-    """
+    """Volatility forecasts vs realized, for every date where all of them are defined"""
     meta, window = bundle["meta"], bundle["lstm_cfg"].window
     frames = {t: vol_frame(g) for t, g in prices.groupby("ticker") if t in meta["stats"]}
     if not frames:
@@ -56,7 +41,7 @@ def backtest_frame(prices: pd.DataFrame, bundle: dict) -> pd.DataFrame:
         out["har"] = np.exp(har_predict(frame, meta["har_params"]).reindex(out.index))
         out["naive"] = np.exp(frame["log_rv5"].reindex(out.index))
         out["actual"] = np.exp(frame["y_vol"].reindex(out.index))
-        out = out.dropna(subset=["actual"])  # the most recent days have no outcome yet
+        out = out.dropna(subset=["actual"])
         out["split"] = labels.of(out.index)
         out["ticker"] = ticker
         out.index.name = "date"
@@ -100,7 +85,7 @@ def publish_backtest(session: Session, backtest: pd.DataFrame, model_version: st
 def publish_forecasts(
     session: Session, prices: pd.DataFrame, tickers: list[str], model_dir=None
 ) -> int:
-    """Run `forecast()` for each ticker and horizon and upsert the results."""
+    """Run `forecast()` for each ticker and horizon and upsert the results"""
     rows = []
     for ticker in tickers:
         history = prices[prices["ticker"] == ticker]

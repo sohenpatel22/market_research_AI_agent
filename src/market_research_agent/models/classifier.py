@@ -45,7 +45,7 @@ def candidates(seed: int = 42) -> dict[str, Pipeline]:
 def select_and_fit(
     train: pd.DataFrame, val: pd.DataFrame, seed: int = 42
 ) -> tuple[str, Pipeline, dict[str, float]]:
-    """Fit every candidate on train, pick the best by validation ROC-AUC."""
+    """Fit every candidate on train, pick the best by validation ROC-AUC"""
     val_auc: dict[str, float] = {}
     fitted: dict[str, Pipeline] = {}
     for name, pipe in candidates(seed).items():

@@ -1,9 +1,4 @@
-"""PyTorch LSTM that forecasts next-5-day log annualized volatility.
-
-One pooled model is trained across tickers. Each ticker's features and target are standardized
-with statistics from that ticker's *training* rows only (so the network is ticker-agnostic and
-nothing leaks from val/test), and predictions are de-standardized per ticker.
-"""
+"""PyTorch LSTM that forecasts next-5-day log annualized volatility"""
 
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -44,7 +39,7 @@ class VolLSTM(nn.Module):
 
 
 def fit_stats(frame: pd.DataFrame, train_mask: np.ndarray) -> dict:
-    """Per-ticker standardization stats from training rows only."""
+    """Per-ticker standardization stats from training rows only"""
     tr = frame[train_mask]
     return {
         "x_mean": tr[VOL_FEATURES].mean().tolist(),
@@ -57,11 +52,7 @@ def fit_stats(frame: pd.DataFrame, train_mask: np.ndarray) -> dict:
 def make_samples(
     frame: pd.DataFrame, stats: dict, window: int
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Sliding windows over the normalized features.
-
-    Returns X (N, window, F), y_norm (N,) — NaN where the target is unknown, e.g. the latest
-    rows at inference time — and t (N,), the row position where each window ends.
-    """
+    """Sliding windows over the normalized features"""
     feats = (frame[VOL_FEATURES].to_numpy() - np.array(stats["x_mean"])) / np.array(stats["x_std"])
     if len(feats) < window:
         return np.empty((0, window, len(VOL_FEATURES))), np.empty(0), np.empty(0, dtype=int)
@@ -77,7 +68,7 @@ def train_lstm(
     val: tuple[np.ndarray, np.ndarray],
     cfg: LSTMConfig,
 ) -> tuple[VolLSTM, dict[str, list[float]]]:
-    """Train with Adam + MSE and early stopping on validation loss (best weights restored)."""
+    """Train with Adam + MSE and early stopping on validation loss (best weights restored)"""
     torch.manual_seed(cfg.seed)
     np.random.seed(cfg.seed)
     x_tr, y_tr = (torch.from_numpy(a) for a in train)
@@ -86,7 +77,7 @@ def train_lstm(
     model = VolLSTM(x_tr.shape[-1], cfg.hidden, cfg.layers, cfg.dropout)
     opt = torch.optim.Adam(model.parameters(), lr=cfg.lr)
     loss_fn = nn.MSELoss()
-    # Shuffling *within* the training set is fine: windows are already built from ordered data.
+    # Shuffling within the training set is fine: windows are already built in time order.
     loader = DataLoader(
         TensorDataset(x_tr, y_tr),
         batch_size=cfg.batch_size,
