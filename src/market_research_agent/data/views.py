@@ -1,7 +1,4 @@
-"""SQL views that give BI tools (Power BI, Metabase, ...) tidy, ready-to-chart tables.
-
-Created idempotently (CREATE OR REPLACE) by `init_db`, so they exist wherever the schema does.
-"""
+"""SQL views that give BI tools (Power BI, Metabase, ...) tidy, ready-to-chart tables"""
 
 BI_VIEWS = [
     # Prices rebased to 100 at each ticker's first date, plus daily returns.

@@ -1,4 +1,4 @@
-"""Ingest daily OHLCV price history for a ticker (yfinance -> pandas -> prices table)."""
+"""Ingest daily OHLCV price history for a ticker (yfinance -> pandas -> prices table)"""
 
 import pandas as pd
 import yfinance as yf
@@ -19,7 +19,7 @@ COLUMN_RENAME = {
 
 
 def fetch_price_history(ticker: str, period: str = "10y") -> pd.DataFrame:
-    """Download (or load from cache) daily OHLCV history for a ticker."""
+    """Download (or load from cache) daily OHLCV history for a ticker"""
     cache_file = raw_path("prices", f"{ticker.upper()}_{period}.csv")
     if cache_file.exists():
         return pd.read_csv(cache_file, index_col=0, parse_dates=True)
@@ -31,7 +31,7 @@ def fetch_price_history(ticker: str, period: str = "10y") -> pd.DataFrame:
 
 
 def tidy_prices(ticker: str, raw_df: pd.DataFrame) -> pd.DataFrame:
-    """Normalize a raw yfinance OHLCV frame into the prices table's tidy shape."""
+    """Normalize a raw yfinance OHLCV frame into the prices table's tidy shape"""
     if raw_df.empty:
         return pd.DataFrame(
             columns=["ticker", "date", "open", "high", "low", "close", "adj_close", "volume"]
@@ -51,7 +51,7 @@ def tidy_prices(ticker: str, raw_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def ingest_prices(session: Session, ticker: str, period: str = "10y") -> int:
-    """Fetch, clean, and upsert price history for a ticker. Returns rows inserted."""
+    """Fetch, clean, and upsert price history for a ticker"""
     tidy = tidy_prices(ticker, fetch_price_history(ticker, period=period))
     if tidy.empty:
         return 0

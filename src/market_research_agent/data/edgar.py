@@ -1,11 +1,4 @@
-"""Minimal SEC EDGAR client: ticker -> CIK lookup, recent filing listing, and
-filing document download.
-
-SEC EDGAR requires a descriptive User-Agent on every request and asks
-consumers not to hammer the API (see https://www.sec.gov/os/webmaster-faq#developers).
-We set a configurable User-Agent, sleep between requests, and cache every raw
-response to disk so re-running ingestion doesn't re-fetch anything.
-"""
+"""Minimal SEC EDGAR client: ticker -> CIK lookup"""
 
 import json
 import time
@@ -22,7 +15,7 @@ COMPANY_TICKERS_URL = "https://www.sec.gov/files/company_tickers.json"
 SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik:0>10}.json"
 ARCHIVES_URL = "https://www.sec.gov/Archives/edgar/data/{cik}/{accession_nodash}/{document}"
 
-REQUEST_DELAY_SECONDS = 0.3  # stay well under SEC's fair-access rate limit
+REQUEST_DELAY_SECONDS = 0.3
 
 
 def _headers() -> dict[str, str]:
@@ -38,7 +31,7 @@ def _get(url: str) -> requests.Response:
 
 
 def get_cik_for_ticker(ticker: str) -> str:
-    """Resolve a ticker to its zero-padded 10-digit CIK, using a cached lookup table."""
+    """Resolve a ticker to its zero-padded 10-digit CIK, using a cached lookup table"""
     cached = read_cached("edgar", "company_tickers.json")
     if cached is None:
         cached = _get(COMPANY_TICKERS_URL).text
@@ -63,7 +56,7 @@ class FilingRef:
 def get_recent_filings(
     ticker: str, forms: tuple[str, ...] = ("10-K", "10-Q"), limit_per_form: int = 1
 ) -> list[FilingRef]:
-    """List the most recent filings of the given forms for a ticker."""
+    """List the most recent filings of the given forms for a ticker"""
     cik = get_cik_for_ticker(ticker)
 
     cache_key = ("edgar", f"submissions_{ticker.upper()}.json")
@@ -100,7 +93,7 @@ def get_recent_filings(
 
 
 def fetch_filing_text(filing: FilingRef) -> str:
-    """Download (or load from cache) a filing document and extract plain text."""
+    """Download (or load from cache) a filing document and extract plain text"""
     cache_file = raw_path("filings", filing.ticker, f"{filing.accession_number}.html")
     if cache_file.exists():
         html = cache_file.read_text(encoding="utf-8")

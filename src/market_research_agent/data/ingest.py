@@ -1,9 +1,4 @@
-"""CLI entrypoint that ingests prices, fundamentals, and filings for a ticker list.
-
-Usage:
-    uv run python -m market_research_agent.data.ingest
-    uv run python -m market_research_agent.data.ingest --tickers AAPL MSFT
-"""
+"""CLI entrypoint that ingests prices, fundamentals, and filings for a ticker list"""
 
 import argparse
 import logging
@@ -23,8 +18,7 @@ DEFAULT_TICKERS = ["AAPL", "MSFT", "NVDA", "JPM", "XOM"]
 
 
 def ingest_ticker(ticker: str) -> None:
-    # Short transactions only: embedding thousands of chunks takes minutes, and serverless
-    # Postgres (Neon) closes connections that sit idle meanwhile.
+    # Short transactions: embedding takes minutes and serverless Postgres drops idle connections.
     with session_scope() as session:
         n_prices = ingest_prices(session, ticker)
         n_fundamentals = ingest_fundamentals(session, ticker)
