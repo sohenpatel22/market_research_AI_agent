@@ -1,7 +1,8 @@
 """Quality-versus-cost chart for a provider comparison.
 
 Usage:
-    uv run python -m market_research_agent.eval.plot_comparison --n 69 \n        --out docs/images/provider-frontier.png
+    uv run python -m market_research_agent.eval.plot_comparison --n 69
+    (writes docs/images/provider-frontier.png; override with --out)
 """
 
 import argparse
