@@ -15,7 +15,7 @@ deterministic:
   data_tool_rate: 1.00          # price/fundamentals questions must call the SQL tool
   data_fact_rate: 0.80          # numeric facts from the database must appear in the answer
   citation_rate: 0.90           # filing answers must cite at least one source
-  multi_source_rate: 0.60       # comparisons must cite every named company (baseline 0.67)
+  multi_source_rate: 0.80       # comparisons must cite every named company (0.67 before the fix, 1.0 after)
   abstain_rate: 0.85            # unanswerable questions must be declined or answered honestly
 
 # Retrieval (no LLM): checked by `eval.retrieval_eval`.
