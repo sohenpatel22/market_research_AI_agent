@@ -143,18 +143,51 @@ def test_cost_estimate():
     assert abs(estimate_cost(usage) - 1.5) < 1e-9
 
 
-def test_compare_skips_non_run_files(tmp_path):
+def test_compare_groups_by_question_count_and_counts_false_refusals(tmp_path):
+    from market_research_agent.eval.compare import false_refusals, to_markdown
+
     (tmp_path / "retrieval_ablation.json").write_text(json.dumps({"summary": {}}))
-    run = {
-        "name": "r1",
-        "config": {"provider": "deepseek", "model": "m", "n_items": 3},
-        "summary": {"ragas_faithfulness": 0.9, "cost_usd_per_question": 0.01},
-        "records": [],
-    }
-    (tmp_path / "r1.json").write_text(json.dumps(run))
+
+    def run(name, n, refused_ids):
+        records = [
+            {"id": "a", "category": "filings", "refused": "a" in refused_ids},
+            {"id": "b", "category": "adversarial", "refused": True},  # a correct refusal
+        ]
+        return {
+            "name": name,
+            "config": {"provider": "deepseek", "model": "m", "n_items": n},
+            "summary": {"ragas_faithfulness": 0.9, "cost_usd_per_question": 0.01},
+            "records": records,
+        }
+
+    (tmp_path / "r1.json").write_text(json.dumps(run("r1", 3, {"a"})))
+    (tmp_path / "r2.json").write_text(json.dumps(run("r2", 5, set())))
     table = load_runs(tmp_path)
-    assert list(table.index) == ["r1 (deepseek/m, n=3)"]
-    assert table.iloc[0]["faithfulness"] == 0.9
+    assert set(table.index) == {"r1 (deepseek/m)", "r2 (deepseek/m)"}
+    assert table.loc["r1 (deepseek/m)", "faithfulness"] == 0.9
+    assert table.loc["r1 (deepseek/m)", "false_refusals"] == 1  # refusing a filings question
+    assert table.loc["r2 (deepseek/m)", "false_refusals"] == 0  # refusing adversarial is right
+    md = to_markdown(table)
+    assert md.index("### 5 questions") < md.index("### 3 questions")  # largest set first
+    assert false_refusals([{"refused": True, "category": "unanswerable"}]) == 0
+
+
+def test_comparison_chart_plots_one_point_per_model():
+    import pandas as pd
+
+    from market_research_agent.eval.plot_comparison import comparison_figure
+
+    table = pd.DataFrame(
+        {
+            "faithfulness": [0.9, 0.8, 0.95],
+            "$/question": [0.001, 0.0005, 0.01],
+            "n": [69, 69, 38],
+        },
+        index=["a (deepseek/flash)", "b (openai/mini)", "c (x/y)"],
+    )
+    fig = comparison_figure(table, 69)
+    assert len(fig.axes[0].collections) == 2  # the 38-question run is excluded
+    assert fig.axes[0].get_xscale() == "log"
 
 
 def _cite(ticker: str) -> Citation:
