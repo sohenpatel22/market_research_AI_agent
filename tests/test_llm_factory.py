@@ -75,3 +75,22 @@ def test_claude_5_models_are_built_without_an_explicit_temperature(monkeypatch):
     get_chat_model("anthropic", "claude-haiku-4-5-20251001", cfg=cfg)
     assert all("temperature" not in c for c in calls[:3])
     assert calls[3]["temperature"] == 0.0  # models that accept it keep the deterministic setting
+
+
+def test_secrets_pasted_with_quotes_or_left_empty_are_cleaned():
+    cfg = make_settings(
+        langfuse_public_key='"pk-lf-1"',
+        langfuse_secret_key="'sk-lf-2'",
+        LANGFUSE_BASE_URL='"https://us.cloud.langfuse.com"',
+        openai_api_key="  ",
+        deepseek_api_key="plain",
+    )
+    assert cfg.langfuse_public_key == "pk-lf-1"
+    assert cfg.langfuse_secret_key == "sk-lf-2"
+    assert cfg.langfuse_host == "https://us.cloud.langfuse.com"
+    assert cfg.openai_api_key is None
+    assert cfg.deepseek_api_key == "plain"
+
+
+def test_blank_langfuse_host_falls_back_to_the_default():
+    assert make_settings(LANGFUSE_HOST="").langfuse_host == "https://cloud.langfuse.com"
