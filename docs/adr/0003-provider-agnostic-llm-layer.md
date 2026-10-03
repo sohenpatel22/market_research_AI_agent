@@ -1,4 +1,4 @@
-# ADR 0003: Provider-agnostic LLM layer with a cheap default
+# ADR 0003: Provider-agnostic LLM layer with a cost-efficient default
 
 ## Context
 The project should not be locked to one vendor, and LLM spend (agent, judge, evals) is the only
@@ -20,6 +20,6 @@ no strict JSON-schema mode). Optional persistent response cache for dev and eval
 - Model names live in config only; provider prices live in one table used for cost reports.
 - Measured, not assumed: DeepSeek, GPT-4o mini, Claude Haiku 4.5 and Claude Sonnet 5.5 were run on the
   same 69 golden questions (see the README's provider comparison). DeepSeek passed every deterministic
-  check at $0.0008 per question; GPT-4o mini was cheaper but over-refused (4 legitimate questions declined);
+  check at $0.0008 per question; GPT-4o mini had a lower unit cost but over-refused (4 legitimate questions declined);
   Sonnet 5.5 cost about 14x more for the same faithfulness. Claude 5.x models also reject an explicit
   temperature, which the factory now leaves unset for them.
