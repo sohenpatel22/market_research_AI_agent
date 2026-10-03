@@ -17,7 +17,6 @@ from market_research_agent.models.train import train_all
 
 
 def synthetic_prices(tickers=("AAA", "BBB", "CCC"), n=900, seed=0) -> pd.DataFrame:
-    """Random walks with volatility clustering (AR(1) log-vol)."""
     rng = np.random.default_rng(seed)
     dates = pd.bdate_range("2018-01-01", periods=n)
     frames = []

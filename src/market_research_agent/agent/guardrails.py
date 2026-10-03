@@ -1,12 +1,10 @@
-"""Defences for untrusted text (filing excerpts) that is placed in the model's context."""
+"""Defences for untrusted text (filing excerpts) that is placed in the model's context"""
 
 import re
 
 MAX_CHUNK_CHARS = 1500
 
-# Lines that look like instructions aimed at an LLM. Filings should never contain these, so a
-# match is dropped from the excerpt rather than passed on. This is defence in depth: the system
-# prompt also tells the model to treat <source> content as data.
+# Lines that look like instructions aimed at an LLM are dropped from excerpts.
 _INJECTION_PATTERNS = [
     re.compile(p, re.IGNORECASE)
     for p in (
@@ -22,7 +20,7 @@ _INJECTION_PATTERNS = [
 
 
 def sanitize_excerpt(text: str) -> str:
-    """Drop injection-looking lines and cap the length of a filing excerpt."""
+    """Drop injection-looking lines and cap the length of a filing excerpt"""
     kept = [
         line for line in text.splitlines() if not any(p.search(line) for p in _INJECTION_PATTERNS)
     ]

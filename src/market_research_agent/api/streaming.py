@@ -1,4 +1,4 @@
-"""Server-Sent Events plumbing: run a blocking generator in one worker thread, stream its events."""
+"""Server-Sent Events plumbing"""
 
 import asyncio
 import json
@@ -10,7 +10,7 @@ _DONE = object()
 
 
 def sse(event: str, data: dict) -> str:
-    """Format one SSE message."""
+    """Format one SSE message"""
     return f"event: {event}\ndata: {json.dumps(data, default=str)}\n\n"
 
 
@@ -18,8 +18,7 @@ async def stream_events(
     make_iterator: Callable[[], Iterator[dict]],
     to_message: Callable[[dict], str],
 ) -> AsyncIterator[str]:
-    """Consume `make_iterator()` entirely inside a single worker thread (tracing contexts are
-    thread-bound) and relay each event as an SSE message without blocking the event loop."""
+    """Consume `make_iterator()` entirely inside a single worker thread (tracing contexts are"""
     events: queue.Queue = queue.Queue()
     stop = threading.Event()
 
@@ -29,7 +28,7 @@ async def stream_events(
                 if stop.is_set():  # client went away; stop between steps
                     break
                 events.put(item)
-        except Exception as exc:  # noqa: BLE001 - surfaced to the client as an error event
+        except Exception as exc:  # noqa: BLE001
             events.put(exc)
         finally:
             events.put(_DONE)
@@ -51,7 +50,6 @@ async def stream_events(
 
 
 def _public_error(exc: Exception) -> str:
-    """A client-safe message: never leak keys or stack details."""
     name = type(exc).__name__
     if name == "MissingAPIKeyError":
         return "The language model is not configured on this server."
@@ -59,9 +57,7 @@ def _public_error(exc: Exception) -> str:
 
 
 def iter_in_thread(make_iterator: Callable[[], Iterator[dict]]) -> Iterator[dict]:
-    """Synchronous counterpart of `stream_events` for callers that iterate on a thread pool
-    (e.g. Gradio generators): the wrapped iterator still runs entirely in ONE worker thread.
-    Exceptions raised by the iterator are re-raised in the consumer."""
+    """Synchronous counterpart of `stream_events` for callers that iterate on a thread pool (e.g"""
     events: queue.Queue = queue.Queue()
     stop = threading.Event()
 

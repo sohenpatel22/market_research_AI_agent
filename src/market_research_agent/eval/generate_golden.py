@@ -1,12 +1,4 @@
-"""Draft the golden dataset: LLM-written Q&A from sampled filing chunks + scripted other cases.
-
-Filing questions are drafted by the LLM from a single sampled chunk (so the ground-truth source is
-known by construction), then meant to be reviewed by a human. Forecast/data/refusal cases are
-scripted; data references are computed from the database snapshot at generation time.
-
-Usage (costs ~25 small LLM calls):
-    uv run python -m market_research_agent.eval.generate_golden
-"""
+"""Draft the golden dataset: LLM-written Q&A from sampled filing chunks + scripted other cases"""
 
 import random
 import re
@@ -25,8 +17,7 @@ TICKERS = ["AAPL", "MSFT", "NVDA", "JPM", "XOM"]
 PER_TICKER = 8
 SECTIONS = ("Item 1A", "Item 7", "Item 1", "Item 2")
 
-# Hand curation: drafted questions judged trivial (table-of-contents or boilerplate). Matched by
-# substring so the exclusions survive renumbering.
+# Hand curation: drafted questions judged trivial (table-of-contents or boilerplate).
 EXCLUDE_QUESTIONS = (
     "Item 2, Management's Discussion",
     "Whose accounts are included",
@@ -56,7 +47,7 @@ def _prose_score(chunk: str) -> float:
 
 
 def sample_chunks(seed: int = 7) -> list[dict]:
-    """Deterministically sample readable prose chunks: PER_TICKER per ticker."""
+    """Deterministically sample readable prose chunks: PER_TICKER per ticker"""
     rng = random.Random(seed)
     picked = []
     with session_scope() as s:

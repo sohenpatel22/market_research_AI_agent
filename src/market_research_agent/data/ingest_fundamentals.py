@@ -1,8 +1,4 @@
-"""Ingest basic quarterly fundamentals for a ticker (yfinance -> pandas -> fundamentals table).
-
-Stored long/tidy: one row per (ticker, period, metric). yfinance's set of
-reported line items varies by company, so a wide table would be mostly NULLs.
-"""
+"""Ingest basic quarterly fundamentals for a ticker (yfinance -> pandas -> fundamentals table)"""
 
 from collections.abc import Callable
 
@@ -22,7 +18,7 @@ STATEMENTS: dict[str, Callable[[yf.Ticker], pd.DataFrame]] = {
 
 
 def fetch_fundamentals(ticker: str) -> dict[str, pd.DataFrame]:
-    """Download (or load from cache) quarterly income/balance/cashflow statements."""
+    """Download (or load from cache) quarterly income/balance/cashflow statements"""
     statements: dict[str, pd.DataFrame] = {}
     yf_ticker: yf.Ticker | None = None
 
@@ -42,7 +38,7 @@ def fetch_fundamentals(ticker: str) -> dict[str, pd.DataFrame]:
 
 
 def tidy_fundamentals(ticker: str, statements: dict[str, pd.DataFrame]) -> pd.DataFrame:
-    """Melt wide (metric x period) statements into a long tidy frame."""
+    """Melt wide (metric x period) statements into a long tidy frame"""
     frames = []
     for df in statements.values():
         if df.empty:
@@ -61,7 +57,7 @@ def tidy_fundamentals(ticker: str, statements: dict[str, pd.DataFrame]) -> pd.Da
 
 
 def ingest_fundamentals(session: Session, ticker: str) -> int:
-    """Fetch, clean, and upsert fundamentals for a ticker. Returns rows inserted."""
+    """Fetch, clean, and upsert fundamentals for a ticker"""
     tidy = tidy_fundamentals(ticker, fetch_fundamentals(ticker))
     if tidy.empty:
         return 0

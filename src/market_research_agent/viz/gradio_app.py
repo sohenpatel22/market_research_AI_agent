@@ -1,8 +1,4 @@
-"""Gradio UI: chat with the agent, forecast explorer, market-data EDA and an About page.
-
-The UI is a thin layer over the same code the API uses (`ask_stream`, `forecast`, the price
-tables): it adds no agent logic of its own.
-"""
+"""Gradio UI: chat with the agent, forecast explorer, market-data EDA and an About page"""
 
 import logging
 
@@ -48,7 +44,7 @@ def _limit_message(limiter: SlidingWindowLimiter, request: gr.Request | None) ->
 
 def build_demo(runtime: Runtime, limiter: SlidingWindowLimiter) -> gr.Blocks:
     def chat_fn(question: str, request: gr.Request):
-        """Generator: yields (progress, answer, sources, facts, status) as the agent works."""
+        """Generator: yields (progress, answer, sources, facts, status) as the agent works"""
         question = (question or "").strip()
         empty: list = []
         if len(question) < 3:
@@ -199,7 +195,7 @@ rewriting the search and retrying if it fails.
 
 
 def mount_ui(app: FastAPI, runtime: Runtime) -> FastAPI:
-    """Mount the Gradio UI at `/`. API routes are registered first, so they take precedence."""
+    """Mount the Gradio UI at `/`"""
     limiter = getattr(app.state, "limiter", None) or SlidingWindowLimiter(
         settings.rate_limit_per_minute
     )

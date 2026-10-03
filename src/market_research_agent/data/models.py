@@ -20,7 +20,7 @@ EMBEDDING_DIM = 384
 
 
 class Price(Base):
-    """Daily OHLCV bar for a ticker."""
+    """Daily OHLCV bar for a ticker"""
 
     __tablename__ = "prices"
     __table_args__ = (UniqueConstraint("ticker", "date", name="uq_prices_ticker_date"),)
@@ -37,11 +37,7 @@ class Price(Base):
 
 
 class Fundamental(Base):
-    """A single reported metric (e.g. revenue) for a ticker and fiscal period.
-
-    Stored long/tidy (one row per metric) rather than wide, since the set of
-    metrics available per ticker/period from a given data source varies.
-    """
+    """A single reported metric (e.g"""
 
     __tablename__ = "fundamentals"
     __table_args__ = (
@@ -56,7 +52,7 @@ class Fundamental(Base):
 
 
 class Document(Base):
-    """A chunk of filing text with its embedding."""
+    """A chunk of filing text with its embedding"""
 
     __tablename__ = "documents"
     __table_args__ = (
@@ -75,10 +71,7 @@ class Document(Base):
 
 
 class ForecastRecord(Base):
-    """A published model forecast (one row per ticker, horizon, as-of date and model version).
-
-    Written by `models.publish` so BI tools (Power BI) can chart the models' output.
-    """
+    """A published model forecast (one row per ticker, horizon, as-of date and model version)"""
 
     __tablename__ = "model_forecasts"
     __table_args__ = (
@@ -98,7 +91,7 @@ class ForecastRecord(Base):
 
 
 class VolBacktestRecord(Base):
-    """Volatility forecasts vs what actually happened, per ticker and date (annualized, decimal)."""
+    """Volatility forecasts vs what actually happened, per ticker and date (annualized, decimal)"""
 
     __tablename__ = "vol_backtest"
     __table_args__ = (

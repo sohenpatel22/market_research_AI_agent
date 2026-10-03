@@ -1,4 +1,4 @@
-"""Lazily-built, shared agent runtime (LLM clients + compiled graph) for the API and UI."""
+"""Lazily-built, shared agent runtime (LLM clients + compiled graph) for the API and UI"""
 
 import threading
 
@@ -6,11 +6,7 @@ from market_research_agent.agent.graph import Dependencies, build_graph, default
 
 
 class Runtime:
-    """Holds the agent's dependencies and compiled graph.
-
-    Built on first use, not at import/startup, so /health and the forecast endpoints work even
-    when no LLM key is configured. Tests inject `deps` directly.
-    """
+    """Holds the agent's dependencies and compiled graph"""
 
     def __init__(self, deps: Dependencies | None = None):
         self._deps = deps

@@ -1,8 +1,4 @@
-"""Versioned on-disk storage for trained model bundles.
-
-Layout: artifacts/models/<version>/{lstm.pt, classifier.joblib, meta.json}, plus a LATEST pointer.
-The bundles are tiny (KBs), so they are committed to git and ship with the deployed image.
-"""
+"""Versioned on-disk storage for trained model bundles"""
 
 import json
 from datetime import UTC, datetime

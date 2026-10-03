@@ -1,12 +1,4 @@
-"""Train, evaluate and track every forecasting model.
-
-Usage:
-    uv run python -m market_research_agent.models.train
-    uv run python -m market_research_agent.models.train --no-mlflow --epochs 20
-
-Runs are logged to MLflow (default store: sqlite:///mlflow.db; view with `uv run mlflow ui
---backend-store-uri sqlite:///mlflow.db`). The best bundle is saved under artifacts/models/.
-"""
+"""Train, evaluate and track every forecasting model"""
 
 import argparse
 import json
@@ -120,7 +112,7 @@ def train_all(
     use_arima: bool = True,
     root: Path = registry.ARTIFACT_ROOT,
 ) -> dict:
-    """Train everything on `prices` (columns: ticker, date, high, low, adj_close, volume)."""
+    """Train everything on `prices` (columns: ticker, date, high, low, adj_close, volume)"""
     cfg = cfg or LSTMConfig()
     preds, model, history, har_params, stats = _vol_predictions(prices, cfg, use_arima)
     models = [m for m in VOL_MODELS if preds[m].notna().any()]

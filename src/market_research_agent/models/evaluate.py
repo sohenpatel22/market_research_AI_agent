@@ -1,4 +1,4 @@
-"""Forecast/classification metrics and the Diebold-Mariano test."""
+"""Forecast/classification metrics and the Diebold-Mariano test"""
 
 import numpy as np
 import pandas as pd
@@ -6,7 +6,7 @@ from sklearn.metrics import accuracy_score, confusion_matrix, f1_score, roc_auc_
 
 
 def vol_metrics(y_log: np.ndarray, pred_log: np.ndarray) -> dict[str, float]:
-    """Metrics for log-annualized-vol forecasts. RMSE/MAE are reported on the vol scale."""
+    """Metrics for log-annualized-vol forecasts"""
     y, p = np.exp(y_log), np.exp(pred_log)
     ratio = (y / p) ** 2  # realized variance / forecast variance
     return {
@@ -18,10 +18,8 @@ def vol_metrics(y_log: np.ndarray, pred_log: np.ndarray) -> dict[str, float]:
 
 
 def dm_test(loss_a: np.ndarray, loss_b: np.ndarray, horizon: int) -> dict[str, float]:
-    """Diebold-Mariano test (HAC / Newey-West, lag = horizon-1). Negative statistic means
-    model A has the lower loss. Overlapping h-step targets make errors autocorrelated, so
-    naive t-tests would overstate significance."""
-    import statsmodels.api as sm  # training/eval extra; not needed for inference
+    """Diebold-Mariano test (HAC / Newey-West, lag = horizon-1)"""
+    import statsmodels.api as sm
 
     d = np.asarray(loss_a, dtype=float) - np.asarray(loss_b, dtype=float)
     fit = sm.OLS(d, np.ones_like(d)).fit(cov_type="HAC", cov_kwds={"maxlags": max(horizon - 1, 0)})
@@ -40,7 +38,7 @@ def classification_metrics(y: np.ndarray, proba: np.ndarray, threshold: float = 
 
 
 def comparison_table(preds: pd.DataFrame, models: list[str]) -> pd.DataFrame:
-    """Vol metrics per model on rows where every model has a prediction."""
+    """Vol metrics per model on rows where every model has a prediction"""
     common = preds.dropna(subset=["y", *models])
     rows = {m: vol_metrics(common["y"].to_numpy(), common[m].to_numpy()) for m in models}
     return pd.DataFrame(rows).T.sort_values("qlike")

@@ -1,8 +1,4 @@
-"""Hybrid retrieval over the pgvector documents table.
-
-Dense (embedding cosine distance, HNSW index) and sparse (Postgres full-text, GIN index) rankings
-are fused with reciprocal rank fusion (RRF), then optionally reranked with a cross-encoder.
-"""
+"""Hybrid retrieval over the pgvector documents table"""
 
 import re
 from collections.abc import Callable
@@ -32,7 +28,7 @@ SPARSE_SQL = text(
 
 
 def to_or_tsquery(query: str, max_terms: int = 12) -> str:
-    """Sanitize free text into an OR-joined tsquery (safe: alphanumerics only)."""
+    """Sanitize free text into an OR-joined tsquery (safe: alphanumerics only)"""
     seen: list[str] = []
     for tok in re.findall(r"[A-Za-z0-9]+", query.lower()):
         if len(tok) >= 3 and tok not in seen:
@@ -45,7 +41,7 @@ def _vector_literal(embedding: list[float]) -> str:
 
 
 def rrf_fuse(rankings: list[list[int]], k: int = RRF_K) -> dict[int, float]:
-    """Reciprocal rank fusion: score(d) = sum over rankings of 1 / (k + rank)."""
+    """Reciprocal rank fusion: score(d) = sum over rankings of 1 / (k + rank)"""
     scores: dict[int, float] = {}
     for ranking in rankings:
         for rank, doc_id in enumerate(ranking, start=1):
@@ -105,7 +101,7 @@ def _cross_encoder():
 
 
 def rerank(query: str, chunks: list[RetrievedChunk], top_k: int) -> list[RetrievedChunk]:
-    """Rescore chunks with a cross-encoder (query and passage read together)."""
+    """Rescore chunks with a cross-encoder (query and passage read together)"""
     if not chunks:
         return chunks
     scores = _cross_encoder().predict([(query, c.text) for c in chunks])
@@ -123,7 +119,7 @@ def retrieve(
     session: Session | None = None,
     mode: str = "hybrid",
 ) -> list[RetrievedChunk]:
-    """Embed the query, run hybrid search and (optionally) rerank."""
+    """Embed the query, run hybrid search and (optionally) rerank"""
     from market_research_agent.data.db import session_scope
     from market_research_agent.data.embeddings import embed_texts
 

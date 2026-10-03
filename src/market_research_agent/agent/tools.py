@@ -1,8 +1,4 @@
-"""The agent's three tools, each with Pydantic inputs/outputs: filing search, forecast, SQL lookup.
-
-The SQL tool never accepts SQL. The model picks one of a few whitelisted, parameterized lookups
-and the values are validated; queries run in a READ ONLY transaction.
-"""
+"""The agent's three tools, each with Pydantic inputs/outputs"""
 
 import re
 
@@ -27,12 +23,12 @@ class ToolInputError(ValueError):
 
 
 def retriever_tool(args: RetrieverInput, **kwargs) -> list[RetrievedChunk]:
-    """Semantic + keyword search over filings."""
+    """Semantic + keyword search over filings"""
     return retrieve(args.query, args.tickers, args.filing_types, args.k, **kwargs)
 
 
 def forecast_tool(ticker: str, horizon: str) -> ForecastResult:
-    """Run the trained forecasting models (1w volatility / 1m direction)."""
+    """Run the trained forecasting models (1w volatility / 1m direction)"""
     return forecast(ticker, horizon)  # type: ignore[arg-type]
 
 
@@ -50,7 +46,7 @@ def _validate(req: DataRequest) -> tuple[str, str | None]:
 
 
 def sql_tool(req: DataRequest) -> DataResult:
-    """Whitelisted read-only lookups against prices / fundamentals."""
+    """Whitelisted read-only lookups against prices / fundamentals"""
     ticker, metric = _validate(req)
     with session_scope() as s:
         s.execute(text("SET LOCAL transaction_read_only = on"))

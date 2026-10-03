@@ -1,11 +1,4 @@
-"""Scheduled walk-forward retraining.
-
-Hold out the latest trading days, train a challenger on the data before them and compare it with the
-current model on those days. If it is clearly better, train on all the data and save a new bundle.
-The current model's holdout error is also compared with its original test error as a drift check.
-
-    uv run python -m market_research_agent.models.retrain --report retrain_report.md
-"""
+"""Scheduled walk-forward retraining"""
 
 import argparse
 import json
@@ -32,12 +25,11 @@ def holdout_start(prices: pd.DataFrame, holdout_days: int) -> pd.Timestamp:
 
 
 def _version_date(version: str) -> str:
-    """Bundles made before `data_through` was recorded: use the date in the version name."""
     return f"{version[:4]}-{version[4:6]}-{version[6:8]}"
 
 
 def holdout_metrics(prices: pd.DataFrame, bundle: dict, start: pd.Timestamp) -> dict:
-    """LSTM volatility forecast errors for one bundle on days from `start` that have an outcome."""
+    """LSTM volatility forecast errors for one bundle on days from `start` that have an outcome"""
     frame = backtest_frame(prices, bundle)
     frame = frame[pd.to_datetime(frame["date"]) >= start]
     metrics = vol_metrics(np.log(frame["actual"].to_numpy()), np.log(frame["lstm"].to_numpy()))

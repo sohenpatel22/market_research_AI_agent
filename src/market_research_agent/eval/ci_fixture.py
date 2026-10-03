@@ -1,13 +1,4 @@
-"""A tiny committed corpus so the CI eval gate can run against an empty database.
-
-`export` snapshots, from the full dev database, the source chunks (plus neighbours and some
-distractors) for the golden items used in CI, and a few weeks of prices. `load` inserts them
-idempotently (ON CONFLICT DO NOTHING), embedding the text with the local model.
-
-Usage:
-    uv run python -m market_research_agent.eval.ci_fixture export
-    uv run python -m market_research_agent.eval.ci_fixture load
-"""
+"""A tiny committed corpus so the CI eval gate can run against an empty database"""
 
 import argparse
 import json

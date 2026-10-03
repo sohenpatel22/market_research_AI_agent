@@ -25,7 +25,7 @@ def test_bundle_contains_only_what_the_dockerfile_needs(tmp_path):
     assert not [n for n in names if n.endswith((".pyc", "desktop.ini"))]
     readme = (out / "README.md").read_text(encoding="utf-8")
     assert readme.startswith(space.FRONT_MATTER)
-    assert "# Market Research Agent" in readme  # original README follows the front matter
+    assert "# Market Research Agent" in readme
 
 
 def test_bundle_is_rebuilt_from_scratch(tmp_path):
@@ -57,7 +57,7 @@ def test_secrets_and_variables_selection():
 
 
 def test_front_matter_is_ascii_only():
-    space.FRONT_MATTER.encode("ascii")  # no raw emoji: avoids encoding mix-ups on the Hub
+    space.FRONT_MATTER.encode("ascii")
 
 
 class HardwareApi:
@@ -77,7 +77,7 @@ def test_ensure_cpu_hardware_switches_gpu_spaces_to_free_cpu():
     assert zero_gpu.calls == ["cpu-basic"]
     already_cpu = HardwareApi("cpu-basic")
     assert space.ensure_cpu_hardware(already_cpu, "o/n") == "cpu-basic"
-    assert already_cpu.calls == []  # no needless change (it would restart the Space)
+    assert already_cpu.calls == []
     unset = HardwareApi(None)
     space.ensure_cpu_hardware(unset, "o/n")
     assert unset.calls == ["cpu-basic"]

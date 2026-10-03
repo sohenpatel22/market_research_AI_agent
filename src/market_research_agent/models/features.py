@@ -1,14 +1,4 @@
-"""Feature engineering and time-ordered splits for the forecasting models.
-
-Two prediction tasks, both built from daily OHLCV:
-
-* Volatility: predict the log annualized realized volatility over the *next* 5 trading days,
-  where daily variance is the Parkinson high-low range estimator (a far less noisy proxy than
-  squared close-to-close returns when intraday data is unavailable).
-* Direction: predict whether the price is higher 21 trading days (~1 month) from now.
-
-Every feature at row t uses only data up to and including day t. Targets look forward.
-"""
+"""Feature engineering and time-ordered splits for the forecasting models"""
 
 from dataclasses import dataclass
 
@@ -36,7 +26,7 @@ DIR_FEATURES = [
 
 
 def ann_log_vol(daily_var):
-    """log(annualized volatility) from a daily variance. NaN-preserving."""
+    """log(annualized volatility) from a daily variance"""
     return 0.5 * np.log(np.maximum(daily_var, EPS) * ANNUALIZE)
 
 
@@ -47,7 +37,7 @@ def _single_ticker(prices: pd.DataFrame) -> pd.DataFrame:
 
 
 def vol_frame(prices: pd.DataFrame) -> pd.DataFrame:
-    """Volatility features + target for ONE ticker (columns: date, high, low, adj_close)."""
+    """Volatility features + target for ONE ticker (columns: date, high, low, adj_close)"""
     df = _single_ticker(prices)
     pk_var = np.log(df["high"] / df["low"]) ** 2 / (4 * np.log(2))
     out = pd.DataFrame(index=df.index)
@@ -61,7 +51,7 @@ def vol_frame(prices: pd.DataFrame) -> pd.DataFrame:
 
 
 def dir_frame(prices: pd.DataFrame) -> pd.DataFrame:
-    """Direction features + target for ONE ticker (columns: date, adj_close, volume)."""
+    """Direction features + target for ONE ticker (columns: date, adj_close, volume)"""
     df = _single_ticker(prices)
     close = df["adj_close"]
     logc = np.log(close)
@@ -89,7 +79,7 @@ def build_frames(prices: pd.DataFrame, fn) -> dict[str, pd.DataFrame]:
 
 @dataclass(frozen=True)
 class SplitLabels:
-    """Maps each calendar date to 'train' | 'val' | 'test' | 'gap'."""
+    """Maps each calendar date to 'train' | 'val' | 'test' | 'gap'"""
 
     labels: pd.Series
 
@@ -100,8 +90,7 @@ class SplitLabels:
 def time_split(
     dates: pd.Index, train_frac: float = 0.70, val_frac: float = 0.15, gap: int = 0
 ) -> SplitLabels:
-    """Chronological split shared by ALL tickers. The last `gap` dates of train and val are
-    labelled 'gap' (purged) so forward-looking targets can't leak across the boundary."""
+    """Chronological split shared by ALL tickers"""
     u = pd.DatetimeIndex(sorted(pd.to_datetime(pd.Index(dates)).unique()))
     n = len(u)
     b1, b2 = int(n * train_frac), int(n * (train_frac + val_frac))

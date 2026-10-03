@@ -1,4 +1,4 @@
-"""Cleaning and chunking of raw filing text before embedding."""
+"""Cleaning and chunking of raw filing text before embedding"""
 
 import re
 
@@ -9,7 +9,7 @@ DEFAULT_CHUNK_OVERLAP = 150
 
 
 def clean_filing_text(raw_text: str) -> str:
-    """Collapse whitespace left over from HTML-to-text extraction."""
+    """Collapse whitespace left over from HTML-to-text extraction"""
     text = re.sub(r"[ \t]+", " ", raw_text)
     text = re.sub(r"\n{3,}", "\n\n", text)
     return text.strip()
@@ -20,7 +20,7 @@ def chunk_text(
     chunk_size: int = DEFAULT_CHUNK_SIZE,
     chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
 ) -> list[str]:
-    """Split cleaned filing text into overlapping chunks for embedding."""
+    """Split cleaned filing text into overlapping chunks for embedding"""
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=chunk_size,
         chunk_overlap=chunk_overlap,
@@ -30,15 +30,11 @@ def chunk_text(
 
 
 _ITEM_RE = re.compile(r"(?im)^[ \t]*item[ \t]+(\d{1,2}[A-C]?)[ \t]*[.:\u2014-]?[ \t]*(.*)$")
-MIN_SECTION_CHARS = 300  # shorter matches are table-of-contents lines, not real sections
+MIN_SECTION_CHARS = 300
 
 
 def split_sections(text: str) -> list[tuple[str, str]]:
-    """Split a 10-K/10-Q into (section_label, text) using "Item N" headings.
-
-    Text before the first heading is labelled "Preamble". Table-of-contents entries produce
-    tiny sections, which are merged into the following section rather than kept on their own.
-    """
+    """Split a 10-K/10-Q into (section_label, text) using "Item N" headings"""
     matches = list(_ITEM_RE.finditer(text))
     if not matches:
         return [("Full text", text)]
@@ -67,7 +63,7 @@ def chunk_by_section(
     chunk_size: int = DEFAULT_CHUNK_SIZE,
     chunk_overlap: int = DEFAULT_CHUNK_OVERLAP,
 ) -> list[tuple[str, str]]:
-    """Section-aware chunking: returns (section_label, chunk_text) pairs."""
+    """Section-aware chunking: returns (section_label, chunk_text) pairs"""
     return [
         (label, chunk)
         for label, body in split_sections(text)

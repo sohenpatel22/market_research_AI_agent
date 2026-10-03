@@ -1,4 +1,4 @@
-"""Inference entrypoint used by the agent's forecast tool."""
+"""Inference entrypoint used by the agent's forecast tool"""
 
 from datetime import date
 from functools import lru_cache
@@ -67,12 +67,7 @@ def forecast(
     model_dir: Path | str | None = None,
     version: str | None = None,
 ) -> ForecastResult:
-    """Forecast for a ticker.
-
-    horizon="1w": annualized volatility over the next 5 trading days (LSTM, with HAR baseline).
-    horizon="1m": probability of a positive return over the next ~21 trading days.
-    `prices` (columns: date, high, low, adj_close, volume) defaults to the database.
-    """
+    """Forecast for a ticker"""
     if horizon not in ("1w", "1m"):
         raise ForecastError(f"Unsupported horizon {horizon!r}; use '1w' or '1m'.")
     ticker = ticker.upper()

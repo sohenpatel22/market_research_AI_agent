@@ -1,6 +1,4 @@
-"""Chart builders (pure functions of DataFrames): Plotly for the forecast view, Matplotlib +
-Seaborn for exploratory analysis. Matplotlib figures are built with the object-oriented API
-(no pyplot), so they are safe to create from web-server worker threads."""
+"""Chart builders (pure functions of DataFrames)"""
 
 import numpy as np
 import pandas as pd
@@ -21,7 +19,7 @@ BASELINE_COLOR = "#d97706"
 def forecast_chart(
     prices: pd.DataFrame, result: ForecastResult | None = None, days: int = 180
 ) -> go.Figure:
-    """Price history (top) and realized volatility (bottom) with the model's forecast marked."""
+    """Price history (top) and realized volatility (bottom) with the model's forecast marked"""
     frame = vol_frame(prices).tail(days)
     close = prices.set_index(pd.to_datetime(prices["date"]))["adj_close"].reindex(frame.index)
     realized = np.exp(frame["log_rv5"]) * 100
@@ -77,7 +75,7 @@ def forecast_chart(
 
 
 def direction_gauge(prob_up: float) -> go.Figure:
-    """Gauge for the one-month probability of a positive return."""
+    """Gauge for the one-month probability of a positive return"""
     fig = go.Figure(
         go.Indicator(
             mode="gauge+number",
@@ -109,7 +107,7 @@ def _empty_figure(message: str) -> Figure:
 
 
 def price_performance_figure(adj_close: pd.DataFrame) -> Figure:
-    """Prices rebased to 100 at the start of the window, so tickers are comparable."""
+    """Prices rebased to 100 at the start of the window, so tickers are comparable"""
     if adj_close.empty:
         return _empty_figure("No price data. Run the ingestion first.")
     rebased = adj_close.div(adj_close.bfill().iloc[0]) * 100
@@ -123,7 +121,7 @@ def price_performance_figure(adj_close: pd.DataFrame) -> Figure:
 
 
 def returns_distribution_figure(adj_close: pd.DataFrame, ticker: str) -> Figure:
-    """Histogram + KDE of daily log returns with a normal fit, to show the fat tails."""
+    """Histogram + KDE of daily log returns with a normal fit, to show the fat tails"""
     if ticker not in adj_close or adj_close[ticker].dropna().size < 30:
         return _empty_figure(f"Not enough data for {ticker}.")
     returns = np.log(adj_close[ticker].dropna()).diff().dropna()
@@ -146,7 +144,7 @@ def returns_distribution_figure(adj_close: pd.DataFrame, ticker: str) -> Figure:
 
 
 def correlation_figure(adj_close: pd.DataFrame) -> Figure:
-    """Heatmap of daily-return correlations between the selected tickers."""
+    """Heatmap of daily-return correlations between the selected tickers"""
     if adj_close.shape[1] < 2:
         return _empty_figure("Select at least two tickers to see correlations.")
     corr = np.log(adj_close).diff().dropna().corr()

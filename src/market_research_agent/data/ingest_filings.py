@@ -1,10 +1,4 @@
-"""Ingest recent 10-K/10-Q filings for a ticker: download -> clean -> chunk -> embed -> insert.
-
-The slow part (downloading and embedding thousands of chunks) is separated from the database
-work, so callers can avoid holding a connection open while embedding: serverless Postgres such
-as Neon closes idle connections after a few minutes. Filings already in the database are skipped
-before any embedding happens, which also makes re-runs cheap.
-"""
+"""Ingest recent 10-K/10-Q filings for a ticker: download -> clean -> chunk -> embed -> insert"""
 
 from collections.abc import Collection
 
@@ -44,14 +38,14 @@ def _chunk_filing(filing: FilingRef) -> list[dict]:
 
 
 def existing_accessions(session: Session) -> set[str]:
-    """Accession numbers of filings that already have chunks in the database."""
+    """Accession numbers of filings that already have chunks in the database"""
     return set(session.execute(select(Document.accession_number).distinct()).scalars())
 
 
 def prepare_filing_rows(
     ticker: str, limit_per_form: int = 1, skip_accessions: Collection[str] = ()
 ) -> list[dict]:
-    """Download, chunk and embed recent filings. Touches the network and CPU, not the database."""
+    """Download, chunk and embed recent filings"""
     rows: list[dict] = []
     for filing in get_recent_filings(ticker, limit_per_form=limit_per_form):
         if filing.accession_number in skip_accessions:
@@ -61,7 +55,7 @@ def prepare_filing_rows(
 
 
 def insert_filing_rows(session: Session, rows: list[dict]) -> int:
-    """Insert prepared rows in batches (idempotent). Returns rows inserted."""
+    """Insert prepared rows in batches (idempotent)"""
     inserted = 0
     for start in range(0, len(rows), INSERT_BATCH_SIZE):
         stmt = insert(Document).values(rows[start : start + INSERT_BATCH_SIZE])
@@ -74,6 +68,6 @@ def insert_filing_rows(session: Session, rows: list[dict]) -> int:
 
 
 def ingest_filings(session: Session, ticker: str, limit_per_form: int = 1) -> int:
-    """Fetch, chunk, embed, and upsert filings for a ticker. Returns rows inserted."""
+    """Fetch, chunk, embed, and upsert filings for a ticker"""
     rows = prepare_filing_rows(ticker, limit_per_form, skip_accessions=existing_accessions(session))
     return insert_filing_rows(session, rows)

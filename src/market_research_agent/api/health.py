@@ -1,4 +1,4 @@
-"""Health checks for the database, trained models, LLM configuration and observability."""
+"""Health checks for the database, trained models, LLM configuration and observability"""
 
 from importlib.metadata import PackageNotFoundError, version
 
@@ -26,7 +26,7 @@ def _database() -> ComponentStatus:
             try:
                 docs = conn.execute(text("SELECT count(*) FROM documents")).scalar_one()
                 prices = conn.execute(text("SELECT count(*) FROM prices")).scalar_one()
-            except Exception:  # noqa: BLE001 - reachable, but the schema/tables are missing
+            except Exception:  # noqa: BLE001
                 return ComponentStatus(ok=False, detail="connected, but tables are missing")
     except Exception as exc:  # noqa: BLE001
         return ComponentStatus(ok=False, detail=f"database unreachable ({type(exc).__name__})")

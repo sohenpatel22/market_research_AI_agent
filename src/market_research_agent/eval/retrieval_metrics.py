@@ -1,4 +1,4 @@
-"""Ranking metrics for retrieval quality."""
+"""Ranking metrics for retrieval quality"""
 
 import math
 
@@ -8,7 +8,7 @@ def dcg(relevances: list[float]) -> float:
 
 
 def ndcg_at_k(retrieved_ids: list, relevance: dict, k: int = 6) -> float:
-    """NDCG@k. `relevance` maps doc id -> graded relevance (0 if absent)."""
+    """NDCG@k"""
     gains = [relevance.get(i, 0.0) for i in retrieved_ids[:k]]
     ideal = sorted(relevance.values(), reverse=True)[:k]
     best = dcg(ideal)

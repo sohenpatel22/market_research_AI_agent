@@ -1,11 +1,4 @@
-"""Combine saved eval runs into comparison tables (quality vs cost vs latency).
-
-Runs are grouped by the number of questions, so only runs over the same question set are ever
-compared side by side.
-
-Usage:
-    uv run python -m market_research_agent.eval.compare
-"""
+"""Combine saved eval runs into comparison tables (quality vs cost vs latency)"""
 
 import json
 from pathlib import Path
@@ -36,7 +29,7 @@ REFUSAL_OK = {"out_of_scope", "adversarial", "unanswerable"}
 
 
 def false_refusals(records: list[dict]) -> int:
-    """Questions the agent declined although it should have answered them (over-refusal)."""
+    """Questions the agent declined although it should have answered them (over-refusal)"""
     return sum(1 for r in records if r.get("refused") and r["category"] not in REFUSAL_OK)
 
 
@@ -56,7 +49,7 @@ def load_runs(results_dir: Path = RESULTS_DIR) -> pd.DataFrame:
 
 
 def to_markdown(table: pd.DataFrame) -> str:
-    """One markdown table per question-set size, largest first."""
+    """One markdown table per question-set size, largest first"""
     sections = []
     for n in sorted(table["n"].unique(), reverse=True):
         part = table[table["n"] == n].drop(columns="n")

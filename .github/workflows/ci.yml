@@ -51,9 +51,7 @@ jobs:
         run: uv run pytest --cov=market_research_agent --cov-report=term-missing
 
   eval-gate:
-    # Runs the real agent on a small golden subset and fails the build if DeepEval scores drop
-    # below eval/thresholds.yaml. Skipped on forks/PRs without secrets (the tests self-skip
-    # when no API key is present, so this job can never break a fork's build).
+    # Runs the agent on a small golden subset; the tests skip themselves when no API key is set.
     needs: lint-and-test
     runs-on: ubuntu-latest
     services:

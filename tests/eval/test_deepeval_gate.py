@@ -1,11 +1,4 @@
-"""CI eval gate (DeepEval): runs the real agent on a small golden subset and fails the build when
-quality drops below eval/thresholds.yaml.
-
-Deselected by default (`-m "not eval"`) because it calls a paid LLM. Run it with:
-    uv run pytest -m eval
-
-Skipped automatically when the configured provider has no API key (e.g. forks without secrets).
-"""
+"""CI eval gate (DeepEval): runs the real agent on a small golden subset and fails the build"""
 
 import os
 
@@ -37,7 +30,7 @@ def deps(engine):
     from market_research_agent.eval import ci_fixture
     from market_research_agent.eval.run_eval import build_deps
 
-    ci_fixture.load()  # idempotent: no-op on a database that already holds the full corpus
+    ci_fixture.load()
     return build_deps(None, None, settings.agent_max_retries, settings.use_reranker)
 
 
@@ -63,7 +56,7 @@ def test_golden_item(item_id, deps, judge):
     assert not failed, f"{item_id}: deterministic checks failed: {failed}\n{answer.answer}"
 
     if item.category != "filings":
-        return  # tool use / refusal behaviour is fully covered by the deterministic checks
+        return
 
     case = LLMTestCase(
         input=item.question,

@@ -1,8 +1,4 @@
-"""Adapters that let RAGAS and DeepEval use the project's provider-agnostic judge model.
-
-Both libraries default to OpenAI. These wrappers route them through `get_judge_model()`, so the
-judge can be DeepSeek, OpenAI or Anthropic via JUDGE_PROVIDER / JUDGE_MODEL.
-"""
+"""Adapters that let RAGAS and DeepEval use the project's provider-agnostic judge model"""
 
 import sys
 import types
@@ -16,8 +12,6 @@ from market_research_agent.llm.factory import get_judge_model
 
 
 def _shim_ragas_imports() -> None:
-    """RAGAS 0.4 imports a module langchain-community >= 0.4 removed (VertexAI chat model).
-    Provide a stub so RAGAS imports; the Vertex code path is never used here."""
     name = "langchain_community.chat_models.vertexai"
     if name not in sys.modules:
         stub = types.ModuleType(name)
@@ -26,7 +20,7 @@ def _shim_ragas_imports() -> None:
 
 
 class LocalEmbeddings(Embeddings):
-    """The project's local sentence-transformer, as a LangChain Embeddings object."""
+    """The project's local sentence-transformer, as a LangChain Embeddings object"""
 
     def embed_documents(self, texts: list[str]) -> list[list[float]]:
         return embed_texts(texts)
@@ -36,7 +30,7 @@ class LocalEmbeddings(Embeddings):
 
 
 def ragas_judge(callbacks: list | None = None):
-    """(llm, embeddings) wrappers for RAGAS metrics."""
+    """(llm, embeddings) wrappers for RAGAS metrics"""
     _shim_ragas_imports()
     from ragas.embeddings import LangchainEmbeddingsWrapper
     from ragas.llms import LangchainLLMWrapper
@@ -48,7 +42,7 @@ def ragas_judge(callbacks: list | None = None):
 
 
 def deepeval_judge(model: BaseChatModel | None = None):
-    """A DeepEval judge backed by the project's judge model."""
+    """A DeepEval judge backed by the project's judge model"""
     from deepeval.models import DeepEvalBaseLLM
 
     class ProjectJudge(DeepEvalBaseLLM):

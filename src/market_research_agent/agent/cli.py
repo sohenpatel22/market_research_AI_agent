@@ -1,9 +1,4 @@
-"""Ask the agent a question from the command line.
-
-Usage:
-    uv run python -m market_research_agent.agent.cli "What are Apple's main supply chain risks?"
-    uv run python -m market_research_agent.agent.cli --sync-prompts   # push prompts to Langfuse
-"""
+"""Ask the agent a question from the command line"""
 
 import argparse
 

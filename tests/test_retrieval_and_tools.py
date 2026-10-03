@@ -10,7 +10,7 @@ from market_research_agent.agent.tools import ToolInputError, sql_tool
 from market_research_agent.data.chunking import chunk_by_section, split_sections
 from market_research_agent.data.models import EMBEDDING_DIM, Document, Fundamental, Price
 
-TICKER = "ZZZR"  # never collides with live data in the shared dev database
+TICKER = "ZZZR"
 
 
 def unit(i: int) -> list[float]:
@@ -105,7 +105,7 @@ def test_sql_tool_lookups(sql_db):
     assert fund.rows[0]["value"] == 5e9
     missing = sql_tool(DataRequest(kind="fundamental", ticker=TICKER, metric="Nonexistent"))
     assert "No fundamentals" in missing.summary
-    with pytest.raises(ToolInputError):  # LIKE wildcards are not valid metric names
+    with pytest.raises(ToolInputError):
         sql_tool(DataRequest(kind="fundamental", ticker=TICKER, metric="100%"))
 
 

@@ -1,16 +1,7 @@
 name: Deploy to Hugging Face Space
 
-# Copies the runtime secrets into the Space, uploads a minimal build context, waits for Hugging
-# Face to build and start the container, then smoke-tests the live URL (/health, the UI and one
-# real /chat question).
-#
-# Manual trigger only until a hosting platform is confirmed (see docs/adr/0006-hosting-constraints.md).
-# To deploy automatically after CI, add this under `on:`:
-#
-#   workflow_run:
-#     workflows: ["CI"]
-#     types: [completed]
-#     branches: [master]
+# Uploads the app to the Hugging Face Space and smoke-tests the live URL.
+# Manual trigger only until a hosting platform is confirmed (docs/adr/0006-hosting-constraints.md).
 on:
   workflow_dispatch:
 

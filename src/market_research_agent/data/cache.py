@@ -1,8 +1,4 @@
-"""Disk cache for raw, unprocessed downloads (prices, fundamentals, filings).
-
-Keeping raw responses on disk means re-running ingestion doesn't re-hit
-yfinance/SEC EDGAR, and gives DVC a stable folder (data/raw/) to version.
-"""
+"""Disk cache for raw, unprocessed downloads (prices, fundamentals, filings)"""
 
 from pathlib import Path
 
@@ -10,7 +6,7 @@ RAW_DATA_DIR = Path("data/raw")
 
 
 def raw_path(*parts: str) -> Path:
-    """Return (and ensure the parent directory exists for) a path under data/raw/."""
+    """Return (and ensure the parent directory exists for) a path under data/raw/"""
     path = RAW_DATA_DIR.joinpath(*parts)
     path.parent.mkdir(parents=True, exist_ok=True)
     return path

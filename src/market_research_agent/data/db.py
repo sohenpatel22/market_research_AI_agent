@@ -7,8 +7,7 @@ from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from market_research_agent.config import settings
 
-# Hybrid retrieval support: a generated full-text column + GIN index for keyword search, and an
-# HNSW index for approximate nearest-neighbour search on the cosine distance of embeddings.
+# Full-text and vector indexes used by hybrid retrieval.
 SEARCH_DDL = [
     "ALTER TABLE documents ADD COLUMN IF NOT EXISTS section VARCHAR(64)",
     """ALTER TABLE documents ADD COLUMN IF NOT EXISTS fts tsvector
@@ -24,13 +23,7 @@ class Base(DeclarativeBase):
 
 
 def engine_options(url: str) -> dict:
-    """Connection settings that suit both a local Postgres and a serverless one (e.g. Neon).
-
-    * `connect_timeout`: a scaled-to-zero database can take several seconds to wake up.
-    * `pool_pre_ping` + `pool_recycle`: serverless Postgres closes idle connections.
-    * `prepare_threshold=None` behind a transaction-mode pooler (Neon's `-pooler` hosts, PgBouncer):
-      server-side prepared statements do not survive across pooled connections.
-    """
+    """Connection settings that suit both a local Postgres and a serverless one (e.g"""
     connect_args: dict = {"connect_timeout": 30}
     if "-pooler" in url or "pgbouncer" in url:
         connect_args["prepare_threshold"] = None
@@ -55,7 +48,7 @@ def get_session_factory() -> sessionmaker[Session]:
 
 @contextmanager
 def session_scope() -> Iterator[Session]:
-    """Provide a transactional session that commits on success, rolls back on error."""
+    """Provide a transactional session that commits on success, rolls back on error"""
     session = get_session_factory()()
     try:
         yield session
@@ -68,7 +61,7 @@ def session_scope() -> Iterator[Session]:
 
 
 def init_db(engine: Engine | None = None) -> None:
-    """Enable pgvector and create all tables. Safe to call repeatedly."""
+    """Enable pgvector and create all tables"""
     engine = engine or get_engine()
     # Import here so Base.metadata is fully populated before create_all.
     from market_research_agent.data import models  # noqa: F401

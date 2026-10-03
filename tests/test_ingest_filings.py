@@ -78,7 +78,7 @@ def test_existing_filings_are_skipped_before_embedding(db_session: Session, monk
     assert ingest_filings.ingest_filings(db_session, TEST_TICKER) > 0
     assert len(embedded) == 1
     assert ingest_filings.ingest_filings(db_session, TEST_TICKER) == 0
-    assert len(embedded) == 1  # the second run never re-embedded the stored filing
+    assert len(embedded) == 1
 
 
 def test_rows_are_inserted_in_batches(db_session: Session, monkeypatch):

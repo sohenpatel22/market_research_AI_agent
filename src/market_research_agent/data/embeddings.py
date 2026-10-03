@@ -1,4 +1,4 @@
-"""Local (non-API) text embedding via a Hugging Face sentence-transformer."""
+"""Local (non-API) text embedding via a Hugging Face sentence-transformer"""
 
 from functools import lru_cache
 
@@ -13,7 +13,7 @@ def get_embedding_model() -> SentenceTransformer:
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:
-    """Embed a batch of text chunks, returning one vector per input string."""
+    """Embed a batch of text chunks, returning one vector per input string"""
     if not texts:
         return []
     model = get_embedding_model()

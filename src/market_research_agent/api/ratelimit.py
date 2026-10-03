@@ -1,4 +1,4 @@
-"""In-memory sliding-window rate limiter (per client), enough for a single-process demo."""
+"""In-memory sliding-window rate limiter (per client), enough for a single-process demo"""
 
 import threading
 import time
@@ -14,7 +14,7 @@ class SlidingWindowLimiter:
         self._lock = threading.Lock()
 
     def check(self, key: str) -> float | None:
-        """Record a hit. Returns None if allowed, else seconds until the client may retry."""
+        """Record a hit"""
         if self.limit <= 0:
             return None
         now = self._clock()

@@ -1,9 +1,4 @@
-"""Cheap, comparable evaluation subsets, and re-scoring a saved run on one without any LLM calls.
-
-Filing questions are the expensive ones (about 6k tokens each, plus RAGAS judging). A comparison
-across models does not need all 50 of them: keep every other category (cheap, mostly deterministic)
-and an evenly spaced sample of the filing questions, identical for every model compared.
-"""
+"""Cheap, comparable evaluation subsets, and re-scoring a saved run on one without any LLM"""
 
 import json
 from pathlib import Path
@@ -14,7 +9,7 @@ RESULTS_DIR = Path("eval/results")
 
 
 def stratified_subset(items: list[GoldenItem], filing_sample: int | None) -> list[GoldenItem]:
-    """All non-filing items plus `filing_sample` evenly spaced filing items (deterministic)."""
+    """All non-filing items plus `filing_sample` evenly spaced filing items (deterministic)"""
     if filing_sample is None:
         return items
     filings = [i for i in items if i.category == "filings"]
@@ -28,11 +23,7 @@ def stratified_subset(items: list[GoldenItem], filing_sample: int | None) -> lis
 def derive_run(
     source_name: str, ids: set[str], new_name: str, results_dir: Path = RESULTS_DIR
 ) -> dict:
-    """Write `new_name` = the records of a saved run restricted to `ids`, re-summarised.
-
-    No LLM calls: RAGAS scores, tokens, cost and latency are those already measured per question.
-    The judge cost is not attributable to a subset, so it is left out.
-    """
+    """Write `new_name` = the records of a saved run restricted to `ids`, re-summarised"""
     from market_research_agent.eval.run_eval import summarize
 
     data = json.loads((results_dir / f"{source_name}.json").read_text(encoding="utf-8"))

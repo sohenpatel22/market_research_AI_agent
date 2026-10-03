@@ -1,7 +1,4 @@
-"""Statistical volatility baselines the LSTM has to beat: persistence, HAR, GARCH, ARIMA.
-
-All predict log annualized 5-day-ahead volatility, aligned to the row where the forecast is made.
-"""
+"""Statistical volatility baselines the LSTM has to beat: persistence, HAR, GARCH, ARIMA"""
 
 import warnings
 
@@ -10,19 +7,16 @@ import pandas as pd
 
 from market_research_agent.models.features import HAR_FEATURES, VOL_HORIZON, ann_log_vol
 
-# statsmodels and arch are only needed to *fit* baselines (the `train` extra). They are
-# imported inside the functions that use them so that inference (`har_predict`) works in a
-# runtime install without those libraries.
+# statsmodels and arch are imported inside the functions that fit baselines (train extra).
 
 
 def naive_predict(frame: pd.DataFrame) -> pd.Series:
-    """Persistence: the next 5 days' vol equals the last 5 days' vol."""
+    """Persistence: the next 5 days' vol equals the last 5 days' vol"""
     return frame["log_rv5"]
 
 
 def fit_har(train_rows: pd.DataFrame) -> list[float]:
-    """Pooled HAR-RV regression (Corsi 2009): y ~ daily + weekly + monthly log-vol. Returns
-    [intercept, b_daily, b_weekly, b_monthly]."""
+    """Pooled HAR-RV regression (Corsi 2009): y ~ daily + weekly + monthly log-vol"""
     import statsmodels.api as sm
 
     data = train_rows.dropna(subset=[*HAR_FEATURES, "y_vol"])
@@ -36,9 +30,7 @@ def har_predict(frame: pd.DataFrame, params: list[float]) -> pd.Series:
 
 
 def garch_predict(frame: pd.DataFrame, train_mask: np.ndarray) -> pd.Series:
-    """GARCH(1,1)-t fitted on train returns only; forecasts the mean variance over the next 5
-    days from every origin. A level bias (Parkinson vs close-to-close variance) is corrected
-    using train rows."""
+    """GARCH(1,1)-t fitted on train returns only"""
     from arch import arch_model
 
     ret = (frame["ret"].dropna() * 100.0).astype(float)
@@ -58,9 +50,7 @@ def garch_predict(frame: pd.DataFrame, train_mask: np.ndarray) -> pd.Series:
 def arima_predict(
     frame: pd.DataFrame, train_mask: np.ndarray, origin_mask: np.ndarray, bias_mask: np.ndarray
 ) -> pd.Series:
-    """ARIMA(1,0,1) on daily log-vol, fitted on train; parameters frozen and the state updated
-    day by day (no look-ahead) to forecast the next 5 days from each origin in `origin_mask`.
-    The exp/log round trip biases the level, corrected on origins in `bias_mask` (validation)."""
+    """ARIMA(1,0,1) on daily log-vol, fitted on train"""
     from statsmodels.tsa.arima.model import ARIMA
 
     values = frame["log_rv1"].to_numpy()
