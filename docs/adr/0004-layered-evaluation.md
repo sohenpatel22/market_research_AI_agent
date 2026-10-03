@@ -2,7 +2,7 @@
 
 ## Context
 LLM-judged metrics are useful but noisy and cost money; some behaviours (refusals, tool use, numeric
-facts) can be checked exactly. A CI gate must be cheap, fast and not flaky.
+facts) can be checked exactly. A CI gate must be low-cost, fast and stable.
 
 ## Decision
 1. **Deterministic checks (free):** refusal exactly when expected, forecast/SQL tools actually called,

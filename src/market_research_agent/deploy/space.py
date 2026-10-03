@@ -105,7 +105,7 @@ def ensure_space(api, space_id: str) -> None:
     """Create the Space as a Docker Space on free CPU hardware if it does not exist yet.
 
     Hardware is chosen at creation time. (An existing Space created with another choice can
-    only be moved back to CPU with a PRO subscription, so a fresh one is the reliable path.)
+    only be changed to CPU on some account plans, so creating a fresh one is the reliable path.)
     """
     api.create_repo(
         space_id,
@@ -131,7 +131,7 @@ def ensure_cpu_hardware(api, space_id: str) -> str:
     except Exception as exc:  # noqa: BLE001
         raise RuntimeError(
             f"Space {space_id} runs on '{requested or 'unset'}' hardware and could not be moved to "
-            "free CPU (Hugging Face only allows that with a PRO subscription). Delete the Space "
+            "CPU hardware on this account plan. Delete the Space "
             "or point --space at a new name; the deployer creates it on cpu-basic."
         ) from exc
     print(f"  hardware was '{requested or 'unset'}'; switched to cpu-basic (free)")
