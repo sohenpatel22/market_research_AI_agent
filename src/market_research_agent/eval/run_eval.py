@@ -32,6 +32,7 @@ from market_research_agent.agent.tools import forecast_tool, sql_tool
 from market_research_agent.config import settings
 from market_research_agent.eval.checks import deterministic_checks, load_thresholds, rate
 from market_research_agent.eval.golden import GoldenItem, load_golden
+from market_research_agent.eval.subsets import derive_run, stratified_subset
 from market_research_agent.llm.factory import get_chat_model, get_judge_model
 from market_research_agent.llm.pricing import estimate_cost, total_tokens
 from market_research_agent.observability import langfuse as lf
@@ -229,6 +230,7 @@ def run(args: argparse.Namespace) -> dict:
         items = sorted(items, key=lambda i: (items.index(i) % max(args.limit, 1), i.id))[
             : args.limit
         ]
+    items = stratified_subset(items, args.filing_sample)
     deps = build_deps(args.provider, args.model, args.max_retries, not args.no_rerank)
 
     records = run_items(items, deps, args.name)
@@ -275,10 +277,25 @@ def main() -> None:
     parser.add_argument("--model")
     parser.add_argument("--limit", type=int)
     parser.add_argument("--categories", nargs="+")
+    parser.add_argument(
+        "--filing-sample",
+        type=int,
+        help="keep all non-filing questions but only this many (evenly spaced) filing questions",
+    )
+    parser.add_argument(
+        "--derive-from",
+        help="no LLM calls: re-summarise this saved run on the same subset instead of running",
+    )
     parser.add_argument("--no-ragas", action="store_true")
     parser.add_argument("--no-rerank", action="store_true")
     parser.add_argument("--max-retries", type=int, default=settings.agent_max_retries)
-    run(parser.parse_args())
+    args = parser.parse_args()
+    if args.derive_from:
+        items = stratified_subset(load_golden(), args.filing_sample)
+        derived = derive_run(args.derive_from, {i.id for i in items}, args.name)
+        print(f"derived {args.name}: {len(derived['records'])} questions from {args.derive_from}")
+        return
+    run(args)
 
 
 if __name__ == "__main__":
