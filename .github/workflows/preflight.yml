@@ -1,7 +1,6 @@
 name: Deployment preflight
 
-# Checks that the production secrets work (Neon database with pgvector, Hugging Face token and
-# Space) before deploying. Prints no secrets. Run it from the Actions tab (workflow_dispatch).
+# Checks the production database (pgvector) and the Hugging Face token. Prints no secrets.
 on:
   workflow_dispatch:
     inputs:

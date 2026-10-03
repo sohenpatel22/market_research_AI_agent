@@ -1,7 +1,6 @@
 name: Retrain models
 
-# Monthly walk-forward retraining: compare a challenger with the current model on the most recent
-# trading days and open a pull request with a new bundle only if the challenger is clearly better.
+# Monthly walk-forward retraining; opens a pull request only if the new model is clearly better.
 on:
   schedule:
     - cron: "23 6 1 * *"

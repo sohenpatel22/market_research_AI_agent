@@ -1,8 +1,6 @@
 name: Seed production database
 
-# Loads the corpus (prices, fundamentals, SEC filing chunks + embeddings) into the production
-# Postgres (the DATABASE_URL secret, e.g. Neon). Safe to re-run: inserts are idempotent.
-# Run it from the Actions tab before the first deploy, and again to refresh the data.
+# Loads prices, fundamentals and filing chunks into the production database. Safe to re-run.
 on:
   schedule:
     - cron: "17 5 * * 0"  # weekly refresh (Sunday 05:17 UTC)
@@ -19,8 +17,7 @@ jobs:
     timeout-minutes: 60
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
-      # SEC EDGAR requires a descriptive User-Agent with contact info. Set a repository variable
-      # SEC_EDGAR_USER_AGENT (Settings > Variables) to something like "Your Name you@example.com".
+      # SEC EDGAR needs a User-Agent with contact info; set the SEC_EDGAR_USER_AGENT repository variable.
       SEC_EDGAR_USER_AGENT: ${{ vars.SEC_EDGAR_USER_AGENT || 'Market Research Agent github-actions@users.noreply.github.com' }}
       UV_LINK_MODE: copy
     steps:

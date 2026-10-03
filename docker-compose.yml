@@ -1,8 +1,6 @@
-# Local stack:  docker compose up --build           (Postgres + the app on http://localhost:7860)
-# One-off jobs: docker compose --profile tools run --rm tools <command>   (see README)
-#
-# Secrets (LLM / Langfuse keys) come from your git-ignored .env file at run time; nothing is
-# baked into an image.
+# docker compose up --build   starts Postgres and the app on http://localhost:7860
+# docker compose --profile tools run --rm tools <command>   runs ingestion, training or evals
+# API keys are read from the git-ignored .env file at run time.
 
 services:
   postgres:
