@@ -63,7 +63,6 @@ class Settings(BaseSettings):
         "anthropic_api_key",
         "langfuse_public_key",
         "langfuse_secret_key",
-        "langfuse_host",
         mode="before",
     )
     @classmethod
@@ -73,9 +72,11 @@ class Settings(BaseSettings):
             v = v.strip().strip("\"'").strip()
         return v or None
 
-    @field_validator("langfuse_host", mode="after")
+    @field_validator("langfuse_host", mode="before")
     @classmethod
-    def _default_host(cls, v):
+    def _clean_host(cls, v):
+        if isinstance(v, str):
+            v = v.strip().strip("\"'").strip()
         return v or "https://cloud.langfuse.com"
 
 
