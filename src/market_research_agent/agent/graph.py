@@ -1,8 +1,4 @@
-"""LangGraph agent: route -> gather -> generate -> grade -> (rewrite -> gather ...) -> finalize.
-
-The grade/rewrite loop is bounded by `max_retries` (and a LangGraph recursion limit), so it can
-never run forever. Every LLM call returns a Pydantic object via structured output.
-"""
+"""LangGraph agent: route -> gather -> generate -> grade -> (rewrite -> gather ...) ->"""
 
 import math
 from collections.abc import Callable, Iterator
@@ -59,7 +55,7 @@ class AgentState(TypedDict, total=False):
 
 @dataclass
 class Dependencies:
-    """Everything the graph needs from the outside world, injectable for tests."""
+    """Everything the graph needs from the outside world, injectable for tests"""
 
     llm: BaseChatModel
     judge: BaseChatModel
@@ -88,7 +84,6 @@ def default_dependencies() -> Dependencies:
     )
 
 
-# --------------------------------------------------------------------------- formatting
 def _format_sources(docs: list[RetrievedChunk]) -> str:
     if not docs:
         return "(no filing excerpts retrieved)"
@@ -135,16 +130,11 @@ def _context_for_grader(state: AgentState) -> str:
     )
 
 
-# ------------------------------------------------------------------------------- graph
 def build_graph(deps: Dependencies, checkpointer: Any | bool | None = None):
-    """Compile the agent graph. `checkpointer=None` uses an in-memory saver, an explicit
-    saver is used as given, and `False` disables checkpointing (a long-running server
-    should not keep every request's state in memory)."""
+    """Compile the agent graph"""
 
     def ask(llm, provider, schema, system: str, user: str):
-        """Structured LLM call. Some providers occasionally answer in plain text instead of
-        calling the schema function (parsed as None), so retry with a nudge. The nudge also
-        changes the prompt, so a cached bad response is not replayed."""
+        """Structured LLM call"""
         runner = structured_output(llm, schema, provider)
         messages = [SystemMessage(content=system), HumanMessage(content=user)]
         for attempt in range(MAX_STRUCTURED_ATTEMPTS):
@@ -164,7 +154,7 @@ def build_graph(deps: Dependencies, checkpointer: Any | bool | None = None):
                 prompts.get("router_system").format(tickers=", ".join(SUPPORTED_TICKERS)),
                 state["question"],
             )
-        except Exception:  # noqa: BLE001 - a failed router should degrade to plain filing search
+        except Exception:  # noqa: BLE001
             decision = RouteDecision(
                 intent="filings", use_filings=True, search_query=state["question"]
             )
@@ -188,9 +178,7 @@ def build_graph(deps: Dependencies, checkpointer: Any | bool | None = None):
         }
 
     def retrieve_filings(query: str, tickers: list[str]) -> list[RetrievedChunk]:
-        """Filing search. With several companies, search each one separately and interleave the
-        results so every company is represented (one company's text can otherwise fill all of
-        the top-k slots and make a comparison impossible)."""
+        """Filing search"""
         if len(tickers) <= 1:
             return deps.retrieve(query, tickers or None, None, deps.top_k)
         per_company = max(2, math.ceil(deps.top_k / len(tickers)))
@@ -264,7 +252,7 @@ def build_graph(deps: Dependencies, checkpointer: Any | bool | None = None):
                     answer=state["draft_answer"].answer,
                 ),
             )
-        except Exception as e:  # noqa: BLE001 - retrying can't fix a broken grader; stop here
+        except Exception as e:  # noqa: BLE001
             return {
                 "quality_passed": False,
                 "feedback": f"grading unavailable: {e}",
@@ -356,7 +344,7 @@ def build_graph(deps: Dependencies, checkpointer: Any | bool | None = None):
 
 
 def recursion_limit(max_retries: int) -> int:
-    """Upper bound on graph steps: fixed nodes + each retry loop, with headroom."""
+    """Upper bound on graph steps: fixed nodes + each retry loop, with headroom"""
     return 6 + NODES_PER_LOOP * max_retries + 4
 
 
@@ -379,7 +367,7 @@ def run_agent(
     metadata: dict | None = None,
     graph=None,
 ) -> AgentAnswer:
-    """Answer one question. `callbacks`/`metadata` carry observability (e.g. Langfuse)."""
+    """Answer one question"""
     deps = deps or default_dependencies()
     graph = graph or build_graph(deps)
     config = _run_config(deps, thread_id, callbacks, metadata)
@@ -395,12 +383,7 @@ def stream_agent(
     metadata: dict | None = None,
     graph=None,
 ) -> Iterator[dict]:
-    """Like run_agent, but yields progress as the graph executes.
-
-    Events: {"type": "step", "node": <name>, "retry": <n>} after each node finishes, then a
-    single {"type": "final", "answer": AgentAnswer}. (Answers come from structured output, so
-    progress is streamed per graph step rather than per token.)
-    """
+    """Like run_agent, but yields progress as the graph executes"""
     deps = deps or default_dependencies()
     graph = graph or build_graph(deps)
     config = _run_config(deps, thread_id, callbacks, metadata)

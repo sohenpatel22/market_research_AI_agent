@@ -1,4 +1,4 @@
-"""The single entrypoint the API, CLI and evals use: run the agent with tracing and scores."""
+"""The single entrypoint the API, CLI and evals use: run the agent with tracing and scores"""
 
 import uuid
 from collections.abc import Iterator
@@ -42,7 +42,6 @@ def _trace_attrs(
 
 
 def _finish(handler, answer: AgentAnswer) -> TracedAnswer:
-    """Attach the grader's verdict to the trace and build the response."""
     trace_id = getattr(handler, "last_trace_id", None) if handler else None
     trace_url = observability.post_scores(
         trace_id,
@@ -66,9 +65,7 @@ def ask(
     tags: list[str] | None = None,
     flush_now: bool = False,
 ) -> TracedAnswer:
-    """Answer a question. With Langfuse configured, the whole run is one trace (route, tools,
-    every LLM call with tokens/cost/latency) tagged with provider, model and git sha, and the
-    grader's verdict is attached as scores. Without Langfuse it is just `run_agent`."""
+    """Answer a question"""
     if deps is None:
         from market_research_agent.agent.graph import default_dependencies
 
@@ -99,9 +96,7 @@ def ask_stream(
     graph=None,
     tags: list[str] | None = None,
 ) -> Iterator[dict]:
-    """Streaming variant of `ask`: yields {"type": "step", ...} events, then
-    {"type": "final", "answer": TracedAnswer}. Consume it from a single thread (the tracing
-    context is thread-bound)."""
+    """Streaming variant of `ask`"""
     if deps is None:
         from market_research_agent.agent.graph import default_dependencies
 

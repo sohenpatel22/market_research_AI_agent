@@ -1,4 +1,4 @@
-"""Prompt templates for the agent, kept out of the graph code so they are easy to tune."""
+"""Prompt templates for the agent, kept out of the graph code so they are easy to tune"""
 
 ROUTER_SYSTEM = """\
 You route questions for a financial research assistant. It can use three capabilities:
@@ -105,7 +105,7 @@ PROMPTS = {
 
 
 def get(name: str) -> str:
-    """Prompt text by name: from the Langfuse registry if enabled, else the local template."""
+    """Prompt text by name: from the Langfuse registry if enabled, else the local template"""
     from market_research_agent.observability import load_prompt
 
     return load_prompt(name, PROMPTS[name])

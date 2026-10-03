@@ -1,4 +1,4 @@
-"""Pydantic schemas for the agent: LLM structured outputs, tool I/O and the final answer."""
+"""Pydantic schemas for the agent: LLM structured outputs, tool I/O and the final answer"""
 
 import datetime as dt
 from typing import Any, Literal
@@ -13,7 +13,6 @@ DISCLAIMER = (
 )
 
 
-# ----------------------------------------------------------------------------- tool I/O
 class RetrievedChunk(BaseModel):
     id: int
     ticker: str
@@ -49,7 +48,6 @@ class DataResult(BaseModel):
     rows: list[dict[str, Any]] = []
 
 
-# ------------------------------------------------------------------ LLM structured outputs
 class RouteDecision(BaseModel):
     """What the question needs, decided before any tool is called."""
 
@@ -82,7 +80,6 @@ class RewriteResult(BaseModel):
     search_query: str
 
 
-# ------------------------------------------------------------------------- final output
 class Citation(BaseModel):
     source_id: int
     ticker: str
