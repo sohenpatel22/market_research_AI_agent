@@ -309,3 +309,45 @@ def test_stream_agent_reports_each_step_then_the_final_answer():
     ]
     assert events[-1]["type"] == "final" and events[-1]["answer"].answer == "better"
     assert [e["retry"] for e in events if e["type"] == "step"][-1] == 1
+
+
+def test_multi_company_questions_retrieve_per_company_and_interleave():
+    route = RouteDecision(
+        intent="filings", tickers=["AAPL", "NVDA"], use_filings=True, search_query="supply chain"
+    )
+    llm = FakeLLM(
+        RouteDecision=[route],
+        DraftAnswer=[DraftAnswer(answer="compared", cited_source_ids=[1, 2])],
+    )
+    deps, _ = make_deps(llm, FakeLLM(GradeResult=[GOOD]))
+    calls = []
+
+    def retrieve(query, tickers, forms, k):
+        calls.append((tuple(tickers), k))
+        t = tickers[0]
+        return [
+            chunk(i + (100 if t == "NVDA" else 0)).model_copy(update={"ticker": t})
+            for i in range(k)
+        ]
+
+    deps.retrieve = retrieve
+    out = run_agent("Compare supply chain risks of Apple and NVIDIA", deps)
+    assert calls == [(("AAPL",), 3), (("NVDA",), 3)]  # one search per company, top_k split
+    assert [s.ticker for s in out.sources] == ["AAPL", "NVDA"]  # interleaved: both lead
+    assert {c.ticker for c in out.retrieved_context} == {"AAPL", "NVDA"}
+    assert len(out.retrieved_context) == 6
+
+
+def test_single_company_retrieval_is_unchanged():
+    llm = FakeLLM(RouteDecision=[FILINGS_ROUTE], DraftAnswer=[DraftAnswer(answer="a")])
+    deps, _ = make_deps(llm, FakeLLM(GradeResult=[GOOD]))
+    seen = []
+    original = deps.retrieve
+
+    def spy(query, tickers, forms, k):
+        seen.append((tuple(tickers or ()), k))
+        return original(query, tickers, forms, k)
+
+    deps.retrieve = spy
+    run_agent("q", deps)
+    assert seen == [(("AAPL",), deps.top_k)]
