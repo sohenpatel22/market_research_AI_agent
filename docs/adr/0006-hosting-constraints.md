@@ -1,29 +1,33 @@
-# ADR 0006: Hosting: what was built, and the constraint that paused the public deploy
+# ADR 0006: Hosting platform and deployment status
+
+## Status
+Deployment automation implemented; public hosting deferred pending the choice of a platform.
 
 ## Context
-The goal was a free, public demo: a Docker image on a Hugging Face Space talking to a free Neon
-Postgres, deployed from GitHub Actions.
+The target was a public demo: a Docker image running on a managed container host, backed by a managed
+PostgreSQL with pgvector, deployed from GitHub Actions.
 
-## What was built and verified
-- Runtime image (multi-stage, non-root, CPU-only PyTorch, models baked in, healthcheck), compose
-  stack, and a CI job that builds it and smoke-tests the running container against Postgres.
-- Production database on Neon (PostgreSQL 18, pgvector 0.8) seeded by a workflow that runs the real
-  ingestion pipeline on a GitHub runner, then refreshed weekly.
-- A deploy workflow/module that copies secrets into the Space, uploads a minimal build context,
-  waits for the build and smoke-tests the live URL.
+## What was implemented and validated
+- A multi-stage runtime image (non-root, CPU-only PyTorch, models included, healthcheck), a compose stack, and
+  a CI job that builds the image and smoke-tests the running container against Postgres.
+- A production database on Neon (PostgreSQL 18, pgvector 0.8), seeded by a workflow that runs the ingestion
+  pipeline and refreshed weekly.
+- A deployment workflow and module for a Hugging Face Docker Space: secrets are copied into the Space, a
+  minimal build context is uploaded, and the live URL is smoke-tested after the build.
 
-## What blocked it
-The deploy reached Hugging Face and failed with `402 Payment Required`: *"Static Spaces are free for
-everyone, but hosting Gradio and Docker Spaces on free cpu-basic requires a PRO subscription."* The
-Space that already existed had been created on ZeroGPU hardware, which also cannot be moved to CPU
-without PRO.
+## Constraint
+Docker Spaces on managed CPU hardware are not available on the account's current plan, so the build step of
+the deployment could not be completed. The workflow reaches the platform and uploads the build context; the
+Space cannot be started.
 
 ## Decision
-Do not make a paid subscription a hidden dependency of the repo. The deploy workflow is manual-only,
-its failure mode is documented, and the project runs end to end locally with one command
-(`make docker-up`). The deploy automation is complete and re-enabling it is a one-line trigger change
-once the account can host a Docker Space (or the same image can be pushed to another host).
+Keep the deployment workflow in the repository, triggered manually, and do not make hosting a dependency of
+the application. The project is fully runnable locally with `make docker-up`. Public hosting will be enabled
+once a platform is selected; no application change is needed because the same image is used.
 
-## Alternatives considered
-Google Cloud Run (scale to zero, needs a billing account), Fly.io / Render (small always-free tiers
-do not fit the ~1.5 GB memory of PyTorch plus two models), AWS App Runner / ECS (paid).
+## Options for hosting
+- Hugging Face Docker Space, on an account plan that includes managed CPU hardware.
+- A serverless container service (for example Google Cloud Run), which scales to zero and needs a billing account.
+- A container service on AWS (App Runner or ECS), which suits the AWS experience listed on the resume.
+- Small always-free tiers (Render, Fly.io) were considered but do not provide the roughly 1.5 GB of memory
+  that PyTorch and the two models need.
