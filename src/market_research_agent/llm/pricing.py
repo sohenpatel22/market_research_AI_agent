@@ -1,7 +1,9 @@
 """Approximate USD prices per 1M tokens, used to report eval cost. Update when providers change.
 
 DeepSeek: https://api-docs.deepseek.com/quick_start/pricing (peak rate; off-peak is half).
-OpenAI / Anthropic: list prices; verify before quoting them anywhere.
+Anthropic: https://platform.claude.com/docs/en/about-claude/pricing (checked 2026-10-02).
+OpenAI: list prices from third-party summaries (openai.com blocks automated fetches); verify
+before quoting them anywhere.
 """
 
 # model name -> (input, cached input, output) USD per 1M tokens
@@ -11,7 +13,13 @@ PRICES: dict[str, tuple[float, float, float]] = {
     "deepseek-v4-pro": (1.32, 0.044, 3.96),
     "gpt-4o-mini": (0.15, 0.075, 0.60),
     "claude-haiku-4-5-20251001": (1.00, 0.10, 5.00),
+    "claude-sonnet-5-5": (2.00, 0.20, 10.00),
+    "claude-opus-5-5": (4.00, 0.20, 20.00),
+    "claude-fable-5-1": (10.00, 0.25, 50.00),
 }
+
+# Claude 4.7+ models use a tokenizer that yields about 30% more tokens for the same text
+# (Anthropic's pricing page), so the same prompt costs correspondingly more on them.
 
 
 def estimate_cost(usage_by_model: dict[str, dict]) -> float:

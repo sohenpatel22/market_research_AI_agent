@@ -70,15 +70,34 @@ def test_rate_ignores_not_applicable():
 
 def test_golden_dataset_is_well_formed():
     items = load_golden()
-    assert 30 <= len(items) <= 50
+    assert 60 <= len(items) <= 150
     assert len({i.id for i in items}) == len(items)
+    sources = [(i.source.accession_number, i.source.chunk_index) for i in items if i.source]
+    assert len(sources) == len(set(sources)), "two questions share a ground-truth chunk"
     for i in items:
         if i.category == "filings":
             assert i.source and i.key_facts and i.expected_tickers
+        if i.category == "multi_source":
+            assert len(i.expected_tickers) >= 2
+        if i.category == "mixed":
+            assert i.expected_forecasts or i.expects_data
+        if i.category == "forecast":
+            assert i.expected_forecasts and i.expected_tickers
         if i.category in ("out_of_scope", "adversarial"):
             assert i.should_refuse
+        if i.category == "unanswerable":
+            assert not i.should_refuse and not i.key_facts
     cats = {i.category for i in items}
-    assert cats == {"filings", "forecast", "data", "out_of_scope", "adversarial"}
+    assert cats == {
+        "filings",
+        "multi_source",
+        "mixed",
+        "forecast",
+        "data",
+        "unanswerable",
+        "out_of_scope",
+        "adversarial",
+    }
     ci_ids = set(load_thresholds()["deepeval"]["ci_items"])
     assert ci_ids <= {i.id for i in items}
 
@@ -136,3 +155,75 @@ def test_compare_skips_non_run_files(tmp_path):
     table = load_runs(tmp_path)
     assert list(table.index) == ["r1 (deepseek/m, n=3)"]
     assert table.iloc[0]["faithfulness"] == 0.9
+
+
+def _cite(ticker: str) -> Citation:
+    return Citation(
+        source_id=1,
+        ticker=ticker,
+        filing_type="10-K",
+        filed_date=dt.date(2025, 1, 1),
+        snippet="s",
+    )
+
+
+def test_multi_source_requires_every_expected_company_to_be_cited():
+    item = GoldenItem(
+        id="m", category="multi_source", question="q", expected_tickers=["AAPL", "NVDA"]
+    )
+    both = deterministic_checks(item, answer(sources=[_cite("AAPL"), _cite("NVDA")]))
+    assert both["multi_source"] is True and both["cited"] is True
+    one = deterministic_checks(item, answer(sources=[_cite("AAPL")]))
+    assert one["multi_source"] is False and one["cited"] is True
+
+
+def test_mixed_questions_check_each_tool_they_expect():
+    item = GoldenItem(
+        id="x",
+        category="mixed",
+        question="q",
+        expected_tickers=["NVDA"],
+        expected_forecasts=["1w"],
+        expects_data=True,
+    )
+    forecast = ForecastResult(
+        ticker="NVDA", horizon="1w", as_of=dt.date(2026, 1, 1), model_version="t", predicted_vol=0.2
+    )
+    data = DataResult(kind="price_change", ticker="NVDA", summary="s")
+    full = deterministic_checks(
+        item, answer(forecasts=[forecast], data=[data], sources=[_cite("NVDA")])
+    )
+    assert full["forecast_tool"] and full["data_tool"] and full["cited"]
+    missing = deterministic_checks(item, answer(sources=[_cite("NVDA")]))
+    assert missing["forecast_tool"] is False and missing["data_tool"] is False
+
+
+def test_forecast_check_needs_the_right_tickers_not_just_any_forecast():
+    item = GoldenItem(
+        id="f",
+        category="forecast",
+        question="q",
+        expected_tickers=["AAPL", "MSFT"],
+        expected_forecasts=["1w"],
+    )
+
+    def vol(ticker):
+        return ForecastResult(
+            ticker=ticker,
+            horizon="1w",
+            as_of=dt.date(2026, 1, 1),
+            model_version="t",
+            predicted_vol=0.2,
+        )
+
+    assert deterministic_checks(item, answer(forecasts=[vol("AAPL"), vol("MSFT")]))["forecast_tool"]
+    assert not deterministic_checks(item, answer(forecasts=[vol("AAPL")]))["forecast_tool"]
+
+
+def test_unanswerable_accepts_abstention_or_refusal_but_not_a_confident_answer():
+    item = GoldenItem(id="u", category="unanswerable", question="q")
+    ok = deterministic_checks(item, answer(text="The filings do not contain that information."))
+    assert ok["abstained"] is True and ok["refusal_correct"] is None
+    assert deterministic_checks(item, answer(refused=True))["abstained"] is True
+    confident = deterministic_checks(item, answer(text="Apple's 1999 revenue was $6.1 billion."))
+    assert confident["abstained"] is False

@@ -159,6 +159,8 @@ def summarize(records: list[dict]) -> dict:
         "data_tool_rate": rate(checks, "data_tool"),
         "data_fact_rate": rate(checks, "data_fact"),
         "citation_rate": rate(checks, "cited"),
+        "multi_source_rate": rate(checks, "multi_source"),
+        "abstain_rate": rate(checks, "abstained"),
         "quality_pass_rate": sum(r["quality_passed"] for r in records) / len(records),
         "mean_retries": sum(r["retries"] for r in records) / len(records),
     }

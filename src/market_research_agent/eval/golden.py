@@ -8,7 +8,20 @@ from pydantic import BaseModel, Field
 
 GOLDEN_PATH = Path("eval/golden_dataset.json")
 
-Category = Literal["filings", "forecast", "data", "out_of_scope", "adversarial"]
+# filings:      one company's filing text (ground-truth source known)
+# multi_source: compares several companies' filings (cites every expected company)
+# mixed:        filing text plus a forecast and/or a database lookup in one question
+# unanswerable: the corpus cannot answer it; the right behaviour is to say so (or decline)
+Category = Literal[
+    "filings",
+    "multi_source",
+    "mixed",
+    "forecast",
+    "data",
+    "unanswerable",
+    "out_of_scope",
+    "adversarial",
+]
 
 
 class GroundTruthSource(BaseModel):
@@ -32,6 +45,7 @@ class GoldenItem(BaseModel):
     expected_tickers: list[str] = Field(default_factory=list)
     expected_forecasts: list[Literal["1w", "1m"]] = Field(default_factory=list)
     should_refuse: bool = False
+    expects_data: bool = False  # mixed questions that must also call the SQL tool
     notes: str = ""
 
 
