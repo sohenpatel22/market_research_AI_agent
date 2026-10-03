@@ -1,5 +1,7 @@
 """Provider-agnostic chat model factory (DeepSeek, OpenAI, Anthropic)."""
 
+import re
+
 from langchain_core.language_models.chat_models import BaseChatModel
 
 from market_research_agent.config import Settings, settings
@@ -18,6 +20,11 @@ STRUCTURED_OUTPUT_METHOD = {
     "openai": "json_schema",
     "anthropic": "function_calling",
 }
+
+
+# Claude 5.x models reject any explicit temperature at call time ("`temperature` is not supported
+# ... at non-default values"), so it must be left unset for them.
+_REJECTS_TEMPERATURE = re.compile(r"^claude-(sonnet|opus)-5|^claude-(fable|mythos)")
 
 
 class MissingAPIKeyError(RuntimeError):
@@ -51,13 +58,9 @@ def _build(
     if provider == "anthropic":
         from langchain_anthropic import ChatAnthropic
 
-        try:
-            return ChatAnthropic(model=model, api_key=key, temperature=temperature, **kwargs)
-        except ValueError as exc:
-            # Newer Claude models reject a non-default temperature; use the model's default.
-            if "temperature" not in str(exc):
-                raise
+        if _REJECTS_TEMPERATURE.match(model):
             return ChatAnthropic(model=model, api_key=key, **kwargs)
+        return ChatAnthropic(model=model, api_key=key, temperature=temperature, **kwargs)
     raise ValueError(f"Unknown LLM provider: {provider!r}")
 
 
