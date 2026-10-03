@@ -1,14 +1,4 @@
-"""Deploy the app to a Hugging Face Docker Space and smoke-test the live URL.
-
-    python -m market_research_agent.deploy.space --space owner/name [--no-wait] [--chat-smoke]
-
-Reads HF_TOKEN from the environment and the runtime secrets (DATABASE_URL, LLM and Langfuse keys)
-from the environment too, so GitHub Actions secrets stay the single source of truth: they are
-copied into the *Space's* secrets, never into the uploaded files or the image. Prints no secrets.
-
-What gets uploaded is a minimal build context (Dockerfile, lockfile, source, trained models) plus
-a README whose front matter tells Hugging Face this is a Docker Space listening on port 7860.
-"""
+"""Deploy the app to a Hugging Face Docker Space and smoke-test the live URL"""
 
 import argparse
 import os
@@ -54,7 +44,7 @@ TERMINAL_FAILURES = {"BUILD_ERROR", "RUNTIME_ERROR", "CONFIG_ERROR", "NO_APP_FIL
 
 
 def build_bundle(repo_root: Path, out_dir: Path) -> Path:
-    """Assemble the minimal Space repo contents in `out_dir` (recreated from scratch)."""
+    """Assemble the minimal Space repo contents in `out_dir` (recreated from scratch)"""
     if out_dir.exists():
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
@@ -68,12 +58,12 @@ def build_bundle(repo_root: Path, out_dir: Path) -> Path:
 
 
 def space_secrets(env: dict[str, str]) -> dict[str, str]:
-    """The non-empty runtime secrets present in `env`."""
+    """The non-empty runtime secrets present in `env`"""
     return {k: env[k] for k in SECRET_NAMES if env.get(k)}
 
 
 def space_variables(env: dict[str, str], git_sha: str) -> dict[str, str]:
-    """Public, non-sensitive settings. GIT_SHA is also available to the Docker build as an ARG."""
+    """Public, non-sensitive settings"""
     return {
         "GIT_SHA": git_sha,
         "LLM_PROVIDER": env.get("LLM_PROVIDER", "deepseek"),
@@ -83,7 +73,7 @@ def space_variables(env: dict[str, str], git_sha: str) -> dict[str, str]:
 
 
 def sync_files(api, space_id: str, bundle: Path, message: str) -> None:
-    """Make the Space repo exactly equal to the bundle in one commit (keeping .gitattributes)."""
+    """Make the Space repo exactly equal to the bundle in one commit (keeping .gitattributes)"""
     from huggingface_hub import CommitOperationAdd, CommitOperationDelete
 
     local = {p.relative_to(bundle).as_posix(): p for p in bundle.rglob("*") if p.is_file()}
@@ -102,11 +92,7 @@ def sync_files(api, space_id: str, bundle: Path, message: str) -> None:
 
 
 def ensure_space(api, space_id: str) -> None:
-    """Create the Space as a Docker Space on free CPU hardware if it does not exist yet.
-
-    Hardware is chosen at creation time. (An existing Space created with another choice can
-    only be changed to CPU on some account plans, so creating a fresh one is the reliable path.)
-    """
+    """Create the Space as a Docker Space on free CPU hardware if it does not exist yet"""
     api.create_repo(
         space_id,
         repo_type="space",
@@ -117,11 +103,7 @@ def ensure_space(api, space_id: str) -> None:
 
 
 def ensure_cpu_hardware(api, space_id: str) -> str:
-    """Make sure the Space runs on free CPU hardware.
-
-    A Space created with another hardware choice (e.g. ZeroGPU, which only exists for the Gradio
-    SDK) ends in CONFIG_ERROR once it becomes a Docker Space. Returns the hardware in effect.
-    """
+    """Make sure the Space runs on free CPU hardware"""
     runtime = api.get_space_runtime(space_id)
     requested = str(getattr(runtime, "requested_hardware", None) or "")
     if requested.startswith("cpu"):
@@ -139,7 +121,7 @@ def ensure_cpu_hardware(api, space_id: str) -> str:
 
 
 def wait_until_running(api, space_id: str, timeout_s: int, poll_s: int = 15) -> str:
-    """Block until the Space is RUNNING; raise with a hint on failure or timeout."""
+    """Block until the Space is RUNNING; raise with a hint on failure or timeout"""
     deadline = time.monotonic() + timeout_s
     last = ""
     while time.monotonic() < deadline:
@@ -158,9 +140,9 @@ def wait_until_running(api, space_id: str, timeout_s: int, poll_s: int = 15) -> 
 
 
 def smoke_test(base_url: str, chat: bool = False, attempts: int = 12) -> dict:
-    """Check /health and the UI on the live URL. Returns the health payload."""
+    """Check /health and the UI on the live URL"""
     health = None
-    for _ in range(attempts):  # the app may still be starting right after RUNNING
+    for _ in range(attempts):
         try:
             r = httpx.get(f"{base_url}/health", timeout=30)
             if r.status_code == 200:

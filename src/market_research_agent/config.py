@@ -5,13 +5,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    """Application settings loaded from environment variables / .env."""
+    """Application settings loaded from environment variables / .env"""
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 
     # LLM provider for the agent; keys are only needed for the provider actually used.
     llm_provider: Literal["deepseek", "openai", "anthropic"] = "deepseek"
-    llm_model: str | None = None  # None -> provider default (see llm/factory.py)
+    llm_model: str | None = None
     llm_temperature: float = 0.0
     # Separate provider for graders/evals so the judge isn't the model under test.
     judge_provider: Literal["deepseek", "openai", "anthropic"] | None = None
@@ -32,7 +32,7 @@ class Settings(BaseSettings):
         validation_alias=AliasChoices("LANGFUSE_BASE_URL", "LANGFUSE_HOST"),
     )
     langfuse_environment: str = "development"
-    langfuse_prompts: bool = False  # fetch prompts from the Langfuse registry (local fallback)
+    langfuse_prompts: bool = False
 
     database_url: str
 
@@ -41,15 +41,13 @@ class Settings(BaseSettings):
     use_reranker: bool = True
     reranker_model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     agent_max_retries: int = 2
-    rate_limit_per_minute: int = 30  # per client IP on /chat and /forecast; 0 disables
+    rate_limit_per_minute: int = 30
     agent_quality_threshold: float = 0.7
     embedding_model_name: str = "BAAI/bge-small-en-v1.5"
 
     @field_validator("database_url", mode="before")
     @classmethod
     def _use_psycopg3_driver(cls, v):
-        """Managed Postgres (Neon, Supabase, Heroku...) hands out plain postgres:// or
-        postgresql:// URLs; SQLAlchemy would pick psycopg2, but this project ships psycopg 3."""
         if isinstance(v, str):
             v = v.strip().strip("\"'")
             for prefix in ("postgres://", "postgresql://"):
