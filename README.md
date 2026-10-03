@@ -175,6 +175,15 @@ Latest run (5 tickers, ~10y daily data, test set = most recent 15%):
 | Persistence | 0.1062 | 0.288 |
 | GARCH | 0.0991 | 0.311 |
 
+**Scheduled retraining.** `models/retrain.py` runs a walk-forward check: the latest 60 trading days are held
+out, a challenger is trained on the data before them, and both it and the current model are scored on those same
+days (QLIKE). If the challenger improves on the current model by more than 2%, a new model is trained on all the
+data and saved. The current model's error on the holdout is also compared with its original test error as a drift
+signal. The `retrain.yml` workflow runs it monthly (or on demand, with a dry-run option) against the production
+database and opens a pull request with the new bundle and a comparison table only when a new model is warranted.
+It costs nothing to run: no LLM calls, about two minutes of GitHub Actions time. When the current model was
+trained on part of the holdout the report says so, because that comparison favours it.
+
 The LSTM beats HAR (Diebold-Mariano p = 0.001). The direction classifier is weak
 (test ROC-AUC 0.62, accuracy below the 65% always-up base rate), which is the honest expectation for
 return prediction. Outputs are statistical estimates, not investment advice.
@@ -440,5 +449,5 @@ Tools: `search_filings`, `forecast_ticker`, `lookup_market_data` (database and m
 **Next**
 - Run the provider comparison for OpenAI and Anthropic (the harness is ready; only DeepSeek is measured).
 - Enlarge the golden set and have a second person label it; add multi-turn questions and conversation memory.
-- Walk-forward retraining on a schedule with drift monitoring (Evidently), and more tickers.
+- Add distribution-level drift monitoring (for example Evidently) to the retraining job, and more tickers.
 - Host publicly (a PRO Hugging Face Space, or the same image on another host) and add authentication.
