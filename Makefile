@@ -1,4 +1,4 @@
-.PHONY: sync lint format test db-up db-down ingest train retrieval-eval eval eval-gate serve docker-up docker-down docker-tools
+.PHONY: sync lint format test db-up db-down ingest train retrieval-eval eval eval-gate serve docker-up docker-down docker-tools retrain
 
 sync:
 	uv sync --all-extras
@@ -44,3 +44,6 @@ docker-down:
 
 docker-tools:
 	docker compose --profile tools run --rm tools $(CMD)
+
+retrain:
+	uv run python -m market_research_agent.models.retrain --dry-run

@@ -151,6 +151,7 @@ def train_all(
         "classifier_val_auc": val_auc,
         "classifier_test_metrics": clf_metrics,
         "test_rows": int(len(common)),
+        "data_through": str(pd.to_datetime(prices["date"]).max().date()),
     }
     bundle_dir = registry.save_bundle(version, model, cfg, clf, meta, root)
     (bundle_dir / "vol_comparison.csv").write_text(table.to_csv())

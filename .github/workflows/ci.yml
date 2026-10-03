@@ -5,6 +5,7 @@ on:
     branches: [main, master]
   pull_request:
     branches: [main, master]
+  workflow_dispatch:
 
 env:
   DATABASE_URL: postgresql+psycopg://market_research_agent:market_research_agent@localhost:5432/market_research_agent
