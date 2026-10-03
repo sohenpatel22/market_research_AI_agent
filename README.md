@@ -31,7 +31,7 @@ No Docker? See [Setup](#setup) to run it with `uv`. A public hosted demo is on h
 | Agent | LangGraph route / gather / generate / grade / rewrite loop with bounded retries; provider-agnostic LLM (DeepSeek, OpenAI, Anthropic); prompt-injection guardrails; verified citations |
 | Retrieval | pgvector + Postgres full-text fused with RRF, section-aware 10-K/10-Q chunking, cross-encoder rerank (NDCG@6 0.59 vs 0.45 for plain hybrid) |
 | Models | PyTorch LSTM beats HAR-RV / GARCH / ARIMA on next-week volatility (Diebold-Mariano p = 0.001); honest, weak direction classifier; MLflow tracking |
-| Evaluation | 38-question golden set; deterministic checks, RAGAS (faithfulness 0.95), DeepEval CI gate; retrieval ablation; about $0.001 per question |
+| Evaluation | 99-question golden set; deterministic checks, RAGAS (faithfulness 0.95), DeepEval CI gate; retrieval ablation; about $0.001 per question |
 | Observability | Langfuse traces, scores, prompt registry, per-model cost |
 | Serving | FastAPI (+ SSE streaming), Gradio UI, rate limiting, MCP server, multi-stage Docker image, GitHub Actions CI |
 | BI | Power BI recipe on published forecasts, an out-of-sample backtest and SQL views |
@@ -226,9 +226,19 @@ Keeping LLM spend low:
 
 ## Evaluation (Phase 5)
 
-`eval/golden_dataset.json` holds 38 questions: 23 filing questions (drafted by an LLM from sampled
-filing chunks so the ground-truth source is known, then hand-curated), 5 forecast, 5 price/fundamentals
-lookups, and 5 out-of-scope/adversarial requests that must be refused.
+`eval/golden_dataset.json` holds 99 questions in eight categories:
+
+| Category | n | What it tests |
+|---|---|---|
+| filings | 50 | one company's filing text; drafted by an LLM from sampled chunks (ground-truth source known), then hand-curated |
+| multi_source | 6 | comparisons that must cite every named company |
+| mixed | 4 | filing text plus a forecast and/or a database lookup in one question |
+| forecast | 10 | the right model is called for the right tickers and horizons, with honest framing |
+| data | 10 | price and fundamentals lookups, checked against database snapshots |
+| unanswerable | 7 | the corpus can't answer (1999 revenue, a Mars colony, Tesla); the right behaviour is to say so |
+| out_of_scope / adversarial | 7 / 5 | trades, personal advice, injection and key-extraction attempts: must be refused |
+
+The first 38 questions were never changed when the set was expanded (`eval.expand_golden`).
 
 | Command | What it does | Cost |
 |---|---|---|
@@ -242,24 +252,35 @@ development; the DeepEval gate runs in CI (`.github/workflows/ci.yml`, job `eval
 committed corpus (`tests/eval/fixtures/ci_corpus.json`) so it works on an empty database, and
 skips itself when no API key is configured. Judges are provider-agnostic (`JUDGE_PROVIDER`).
 
-Baseline (DeepSeek, reranker on, cache off, n=38): faithfulness 0.95, answer relevancy 0.88,
-context precision 0.80, context recall 0.96, refusal accuracy 100%, forecast/data tool use 100%,
-about $0.0011 per question and 4.5k tokens, latency p50 4.5 s / p95 14 s (judge cost about $0.07
-per full run).
+Baseline (DeepSeek, reranker on, cache off, n=99): faithfulness 0.95, answer relevancy 0.86,
+context precision 0.83, context recall 0.92; refusals, forecast/SQL tool use and numeric facts 100%;
+unanswerable questions handled honestly 7/7; about $0.0013 per question and 4.7k tokens, latency
+p50 4.3 s / p95 12.4 s (agent about $0.13 and RAGAS judge about $0.18 for the full run).
+The earlier 38-question run is kept as `eval/results/deepseek-flash-n38.json`.
 
-Retrieval ablation (23 filing questions, k=6):
+**What the expanded set found (and the baseline does not hide):**
+- **Cross-company comparisons:** only 4 of 6 cited both companies (`multi_source_rate` 0.67). In the
+  failures all six retrieved excerpts came from one company, so the agent said it could not compare.
+- One answer gave no citation (an XOM 10-Q question where retrieval returned only XBRL tables), and one
+  forecast question ended with "I could not produce a valid answer" after two retries (on the final
+  pass the provider returned no usable structured output).
+- Unanswerable questions behaved well: the agent said what was missing (even listing which fiscal
+  periods the data does cover) instead of inventing figures. The abstention check is a regex
+  heuristic, so these answers were also read by hand.
+
+Retrieval ablation (50 filing questions, k=6):
 
 | Retriever | NDCG@6 | Recall@6 | MRR |
 |---|---|---|---|
-| dense | 0.483 | 0.826 | 0.605 |
-| sparse (keywords) | 0.250 | 0.522 | 0.333 |
-| hybrid (RRF) | 0.447 | 0.783 | 0.570 |
-| hybrid + cross-encoder rerank | 0.591 | 0.913 | 0.772 |
+| dense | 0.461 | 0.780 | 0.577 |
+| sparse (keywords) | 0.284 | 0.520 | 0.355 |
+| hybrid (RRF) | 0.439 | 0.740 | 0.571 |
+| hybrid + cross-encoder rerank | 0.559 | 0.820 | 0.745 |
 
 Findings: the keyword leg alone is weak here, so plain RRF slightly trails dense-only; the
-cross-encoder rerank gives the clear win, so it is on by default (`USE_RERANKER`). Down-weighting the
-keyword leg helps the un-reranked hybrid but not the reranked one. With 23 questions these
-differences are indicative, not statistically established. Only DeepSeek has been run end to end so
+cross-encoder rerank gives the clear win, so it is on by default (`USE_RERANKER`). The ranking of the
+four retrievers is the same as on the original 23 questions. With 50 questions the gaps are clearer
+but still not tested for statistical significance. Only DeepSeek has been run end to end so
 far; use `--provider`/`--model` to add OpenAI or Claude rows to the comparison.
 
 ## API and UI (Phase 6)
