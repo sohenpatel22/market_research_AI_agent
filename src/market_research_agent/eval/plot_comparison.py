@@ -1,9 +1,4 @@
-"""Quality-versus-cost chart for a provider comparison.
-
-Usage:
-    uv run python -m market_research_agent.eval.plot_comparison --n 69
-    (writes docs/images/provider-frontier.png; override with --out)
-"""
+"""Quality-versus-cost chart for a provider comparison"""
 
 import argparse
 from pathlib import Path
@@ -15,7 +10,7 @@ from market_research_agent.eval.compare import load_runs
 
 
 def comparison_figure(table: pd.DataFrame, n: int) -> Figure:
-    """Faithfulness (y) against dollars per question on a log axis (x), one point per model."""
+    """Faithfulness (y) against dollars per question on a log axis (x), one point per model"""
     part = table[table["n"] == n].dropna(subset=["faithfulness", "$/question"])
     fig = Figure(figsize=(7.5, 4.5))
     ax = fig.subplots()

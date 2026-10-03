@@ -1,13 +1,4 @@
-"""Expand the golden set beyond the original 38 items, keeping existing ids and items unchanged.
-
-Adds: more filing questions (drafted from chunks not used before, so their ground-truth sources are
-new), cross-company comparisons, mixed filing + tool questions, more forecast and database
-questions, questions the corpus cannot answer (the right behaviour is to say so), and more refusal
-and prompt-injection cases. Database references are snapshots taken at generation time.
-
-Usage (about 25 small LLM calls):
-    uv run python -m market_research_agent.eval.expand_golden
-"""
+"""Expand the golden set beyond the original 38 items"""
 
 import random
 import re
@@ -44,7 +35,7 @@ EXCLUDE_QUESTIONS: tuple[str, ...] = (
 
 
 def used_chunk_keys(items: list[GoldenItem]) -> set[tuple[str, int]]:
-    """Source chunks already in the golden set, plus their neighbours (relevance 1 in NDCG)."""
+    """Source chunks already in the golden set, plus their neighbours (relevance 1 in NDCG)"""
     keys = set()
     for item in items:
         if item.source:
@@ -300,7 +291,7 @@ def scripted_items(existing: list[GoldenItem]) -> list[GoldenItem]:
     for ticker, req, question in DATA:
         result = sql_tool(req)
         if not result.rows:
-            continue  # nothing to anchor a reference on; skip rather than invent
+            continue
         fact = result.summary
         if req.kind == "fundamental":
             row = result.rows[0]

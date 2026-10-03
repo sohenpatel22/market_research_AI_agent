@@ -1,4 +1,4 @@
-"""Golden evaluation dataset: schema and loader."""
+"""Golden evaluation dataset: schema and loader"""
 
 import json
 from pathlib import Path
@@ -9,9 +9,6 @@ from pydantic import BaseModel, Field
 GOLDEN_PATH = Path("eval/golden_dataset.json")
 
 # filings:      one company's filing text (ground-truth source known)
-# multi_source: compares several companies' filings (cites every expected company)
-# mixed:        filing text plus a forecast and/or a database lookup in one question
-# unanswerable: the corpus cannot answer it; the right behaviour is to say so (or decline)
 Category = Literal[
     "filings",
     "multi_source",
@@ -25,7 +22,7 @@ Category = Literal[
 
 
 class GroundTruthSource(BaseModel):
-    """Stable pointer to the chunk(s) that answer the question (survives re-ingestion)."""
+    """Stable pointer to the chunk(s) that answer the question (survives re-ingestion)"""
 
     ticker: str
     filing_type: str
@@ -45,7 +42,7 @@ class GoldenItem(BaseModel):
     expected_tickers: list[str] = Field(default_factory=list)
     expected_forecasts: list[Literal["1w", "1m"]] = Field(default_factory=list)
     should_refuse: bool = False
-    expects_data: bool = False  # mixed questions that must also call the SQL tool
+    expects_data: bool = False
     notes: str = ""
 
 

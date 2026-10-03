@@ -1,4 +1,4 @@
-"""Deterministic (no-LLM) checks on agent answers, plus threshold loading."""
+"""Deterministic (no-LLM) checks on agent answers, plus threshold loading"""
 
 import re
 from contextlib import suppress
@@ -17,7 +17,6 @@ def load_thresholds(path: Path = THRESHOLDS_PATH) -> dict:
 
 
 def _number_variants(value: float) -> set[str]:
-    """Ways an answer might legitimately write a number (1,234,000,000 / 1.234 billion / ...)."""
     out = {f"{value:,.0f}", f"{value:.0f}", f"{value:,.2f}", f"{value:.2f}", f"{value:.1f}"}
     for divisor in (1e9, 1e6):
         if abs(value) >= divisor:
@@ -39,7 +38,7 @@ def numbers_in(text: str) -> list[float]:
 
 
 def fact_numbers_present(key_fact: str, answer: str) -> bool:
-    """True if the fact's headline numbers (ignoring dates/years) appear in the answer."""
+    """True if the fact's headline numbers (ignoring dates/years) appear in the answer"""
     without_dates = re.sub(r"\d{4}-\d{2}-\d{2}", " ", key_fact)
     nums = [n for n in numbers_in(without_dates) if not (1900 <= abs(n) <= 2100 and n == int(n))]
     if not nums:
@@ -59,7 +58,7 @@ ABSTAIN_RE = re.compile(
 
 
 def deterministic_checks(item: GoldenItem, answer: AgentAnswer) -> dict[str, bool | None]:
-    """Per-item pass/fail for each applicable check (None = not applicable)."""
+    """Per-item pass/fail for each applicable check (None = not applicable)"""
     checks: dict[str, bool | None] = {
         # For unanswerable questions either a refusal or an abstention is acceptable.
         "refusal_correct": None

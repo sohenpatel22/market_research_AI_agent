@@ -1,19 +1,4 @@
-"""Run the agent over the golden set and score it. This is the dev-loop eval (costs LLM tokens).
-
-Scores per item:
-  * deterministic checks (refusal, tool use, numeric facts, citations) - free
-  * RAGAS faithfulness / answer_relevancy / context_precision / context_recall (filing questions)
-plus tokens, estimated cost and latency for the agent under test. Results go to
-eval/results/<name>.json and, when Langfuse is configured, to a Langfuse dataset run.
-
-Usage:
-    uv run python -m market_research_agent.eval.run_eval --name deepseek-flash
-    uv run python -m market_research_agent.eval.run_eval --name quick --limit 6 --no-ragas
-    uv run python -m market_research_agent.eval.run_eval --name gpt --provider openai \
-        --model gpt-4o-mini
-
-For fair cost/latency numbers keep LLM_CACHE=false; enable it to re-score cheaply.
-"""
+"""Run the agent over the golden set and score it"""
 
 import argparse
 import functools
@@ -108,7 +93,7 @@ def run_items(items: list[GoldenItem], deps: Dependencies, run_name: str) -> lis
 
 
 def score_ragas(records: list[dict], judge_usage: UsageMetadataCallbackHandler) -> None:
-    """Attach RAGAS scores (in place) to filing answers that have retrieved context."""
+    """Attach RAGAS scores (in place) to filing answers that have retrieved context"""
     from market_research_agent.eval.judges import ragas_judge
 
     llm, embeddings = ragas_judge(callbacks=[judge_usage])
@@ -178,7 +163,7 @@ def summarize(records: list[dict]) -> dict:
 
 
 def compare_to_thresholds(summary: dict, thresholds: dict) -> list[str]:
-    """Human-readable list of failed thresholds (empty = all good)."""
+    """Human-readable list of failed thresholds (empty = all good)"""
     failures = []
     for metric, minimum in thresholds["ragas"].items():
         got = summary.get(f"ragas_{metric}")

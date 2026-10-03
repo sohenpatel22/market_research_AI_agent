@@ -1,12 +1,4 @@
-"""Retrieval-only evaluation and ablation (no LLM calls, so it is free to run).
-
-Compares dense, sparse, hybrid (RRF) and hybrid + cross-encoder rerank on the golden set's filing
-questions. The exact source chunk has relevance 2, its two neighbours in the same filing have
-relevance 1. Queries are filtered to the expected ticker, as the agent's router does in production.
-
-Usage:
-    uv run python -m market_research_agent.eval.retrieval_eval [--k 6] [--no-rerank]
-"""
+"""Retrieval-only evaluation and ablation (no LLM calls, so it is free to run)"""
 
 import argparse
 import json
