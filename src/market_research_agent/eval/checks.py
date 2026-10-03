@@ -48,23 +48,46 @@ def fact_numbers_present(key_fact: str, answer: str) -> bool:
     return any(any(v in haystack for v in _number_variants(n)) for n in nums)
 
 
+# An honest "I can't tell from the sources" in an answer to an unanswerable question.
+ABSTAIN_RE = re.compile(
+    r"\b(does not|doesn't|do not|don't|not (?:contain|include|provide|mention|specify|available|"
+    r"address|cover|disclose|found)|no (?:information|mention|data|details|specific|record)|"
+    r"unable to|cannot|can't|couldn't|isn't|aren't|outside|only covers?|not covered|"
+    r"insufficient|lack|missing)\b",
+    re.IGNORECASE,
+)
+
+
 def deterministic_checks(item: GoldenItem, answer: AgentAnswer) -> dict[str, bool | None]:
     """Per-item pass/fail for each applicable check (None = not applicable)."""
     checks: dict[str, bool | None] = {
-        "refusal_correct": answer.refused == item.should_refuse,
+        # For unanswerable questions either a refusal or an abstention is acceptable.
+        "refusal_correct": None
+        if item.category == "unanswerable"
+        else answer.refused == item.should_refuse,
         "forecast_tool": None,
         "data_tool": None,
         "data_fact": None,
         "cited": None,
+        "multi_source": None,
+        "abstained": None,
     }
-    if item.category == "forecast":
-        got = {f.horizon for f in answer.forecasts}
-        checks["forecast_tool"] = set(item.expected_forecasts) <= got
-    elif item.category == "data":
+    if item.expected_forecasts:
+        got = {(f.ticker, f.horizon) for f in answer.forecasts}
+        want = {(t, h) for t in item.expected_tickers for h in item.expected_forecasts}
+        checks["forecast_tool"] = want <= got
+    if item.category == "data":
         checks["data_tool"] = len(answer.data) >= 1
         checks["data_fact"] = all(fact_numbers_present(f, answer.answer) for f in item.key_facts)
-    elif item.category == "filings":
+    elif item.category == "mixed" and item.expects_data:
+        checks["data_tool"] = len(answer.data) >= 1
+    if item.category in ("filings", "multi_source", "mixed"):
         checks["cited"] = len(answer.sources) >= 1
+    if item.category == "multi_source":
+        cited = {s.ticker for s in answer.sources}
+        checks["multi_source"] = set(item.expected_tickers) <= cited
+    if item.category == "unanswerable":
+        checks["abstained"] = answer.refused or bool(ABSTAIN_RE.search(answer.answer))
     return checks
 
 
