@@ -1,11 +1,4 @@
-"""Log offline experiments (model training runs, evals) to Langfuse as traces with scores.
-
-MLflow remains the system of record for model training; this puts the headline results next to
-the LLM traces so one dashboard shows both. No-op when Langfuse is not configured.
-
-Usage:
-    uv run python -m market_research_agent.observability.experiments        # log latest bundle
-"""
+"""Log offline experiments (model training runs, evals) to Langfuse as traces with scores"""
 
 import logging
 
@@ -16,8 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 def log_training_run(meta: dict) -> str | None:
-    """One trace per trained bundle; each model's test metrics and the classifier's become scores.
-    Returns the trace URL (None if Langfuse is off)."""
+    """One trace per trained bundle; each model's test metrics and the classifier's become scores"""
     client = lf.get_client()
     if client is None:
         return None
@@ -53,7 +45,7 @@ def log_training_run(meta: dict) -> str | None:
             trace_id = client.get_current_trace_id()
         lf.flush()
         return client.get_trace_url(trace_id=trace_id)
-    except Exception:  # noqa: BLE001 - observability must never break training
+    except Exception:  # noqa: BLE001
         logger.warning("Failed to log training run to Langfuse", exc_info=True)
         return None
 

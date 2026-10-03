@@ -1,9 +1,4 @@
-"""Langfuse tracing, scores and prompt registry.
-
-Everything here is a no-op unless LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY are set, so tests,
-CI and forks run without Langfuse. Import errors or network failures never break a request:
-observability must not take the app down.
-"""
+"""Langfuse tracing, scores and prompt registry"""
 
 import atexit
 import logging
@@ -24,7 +19,7 @@ def is_enabled(cfg: Settings = settings) -> bool:
 
 @lru_cache(maxsize=1)
 def get_client():
-    """The process-wide Langfuse client, or None when tracing is off."""
+    """The process-wide Langfuse client, or None when tracing is off"""
     if not is_enabled():
         return None
     try:
@@ -44,7 +39,7 @@ def get_client():
 
 
 def get_handler():
-    """A fresh LangChain/LangGraph callback handler (one per request), or None."""
+    """A fresh LangChain/LangGraph callback handler (one per request), or None"""
     if get_client() is None:
         return None
     try:
@@ -57,7 +52,7 @@ def get_handler():
 
 
 def trace_context(**attrs):
-    """Attach session/user/tags/metadata to every span created inside the block."""
+    """Attach session/user/tags/metadata to every span created inside the block"""
     if get_client() is None:
         return nullcontext()
     from langfuse import propagate_attributes
@@ -66,7 +61,7 @@ def trace_context(**attrs):
 
 
 def post_scores(trace_id: str | None, scores: dict[str, float | bool | None]) -> str | None:
-    """Attach evaluation scores to a trace; returns the trace URL when available."""
+    """Attach evaluation scores to a trace; returns the trace URL when available"""
     client = get_client()
     if client is None or not trace_id:
         return None
@@ -104,13 +99,12 @@ def shutdown() -> None:
             client.shutdown()
 
 
-# ------------------------------------------------------------------------- prompt registry
 _MUSTACHE = re.compile(r"\{\{\s*(\w+)\s*\}\}")
 _SINGLE = re.compile(r"\{(\w+)\}")
 
 
 def to_langfuse_template(local: str) -> str:
-    """Local templates use {var}; Langfuse uses {{var}}."""
+    """Local templates use {var}; Langfuse uses {{var}}"""
     return _SINGLE.sub(r"{{\1}}", local)
 
 
@@ -119,7 +113,7 @@ def from_langfuse_template(remote: str) -> str:
 
 
 def load_prompt(name: str, local: str) -> str:
-    """The prompt text to use: the registry's `production` version if enabled, else `local`."""
+    """The prompt text to use: the registry's `production` version if enabled, else `local`"""
     if not settings.langfuse_prompts:
         return local
     client = get_client()
@@ -138,7 +132,7 @@ def load_prompt(name: str, local: str) -> str:
 
 
 def sync_prompts(prompts: dict[str, str]) -> None:
-    """Create/update registry prompts from the local templates (labelled production)."""
+    """Create/update registry prompts from the local templates (labelled production)"""
     client = get_client()
     if client is None:
         raise SystemExit("Set LANGFUSE_PUBLIC_KEY and LANGFUSE_SECRET_KEY first.")

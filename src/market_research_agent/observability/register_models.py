@@ -1,13 +1,4 @@
-"""Register per-token prices for models Langfuse doesn't price out of the box.
-
-Langfuse computes cost from token usage only when it knows the model's price. DeepSeek's current
-models are not in its built-in list, so traces show tokens but no cost until they're added.
-Prices are USD per 1M tokens at DeepSeek's *peak* rate (conservative; off-peak is half), taken
-from https://api-docs.deepseek.com/quick_start/pricing. Update when pricing changes.
-
-Usage:
-    uv run python -m market_research_agent.observability.register_models
-"""
+"""Register per-token prices for models Langfuse doesn't price out of the box"""
 
 from market_research_agent.observability import get_client
 
@@ -33,7 +24,7 @@ def main() -> None:
                 output_price=out / 1e6,
             )
             print(f"registered {name}: ${inp}/1M in, ${out}/1M out")
-        except Exception as e:  # noqa: BLE001 - already exists or API error; keep going
+        except Exception as e:  # noqa: BLE001
             print(f"skipped {name}: {str(e)[:120]}")
 
 
