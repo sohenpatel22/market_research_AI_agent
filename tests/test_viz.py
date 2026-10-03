@@ -176,4 +176,4 @@ def test_gradio_app_builds_and_mounts():
     page = client.get("/")
     assert page.status_code == 200 and "Market Research Agent" in page.text
     assert client.get("/health").status_code == 200  # API routes still win over the UI mount
-    assert GradeResult  # imported for clarity of the fake wiring
+    assert GradeResult

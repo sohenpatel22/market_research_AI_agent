@@ -18,7 +18,7 @@ from market_research_agent.models.forecast import ForecastResult
 
 
 class FakeLLM:
-    """Duck-types `with_structured_output`; returns queued objects per schema, in order."""
+    """Duck-types `with_structured_output`; returns queued objects per schema, in order"""
 
     def __init__(self, **queues):
         self.queues = {k: list(v) for k, v in queues.items()}

@@ -43,7 +43,7 @@ def test_search_filings_clamps_k_and_returns_plain_json(monkeypatch):
 
     monkeypatch.setattr(mcp_server, "retriever_tool", fake_search)
     out = mcp_server.search_filings("supply chain", tickers=["AAPL"], k=999)
-    assert seen["args"].k == 20  # clamped to the schema limit rather than failing
+    assert seen["args"].k == 20
     assert out[0]["filed_date"] == "2025-10-31" and out[0]["section"] == "Item 1A"
 
 

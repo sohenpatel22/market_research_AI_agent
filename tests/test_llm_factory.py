@@ -74,4 +74,4 @@ def test_claude_5_models_are_built_without_an_explicit_temperature(monkeypatch):
         get_chat_model("anthropic", model, cfg=cfg)
     get_chat_model("anthropic", "claude-haiku-4-5-20251001", cfg=cfg)
     assert all("temperature" not in c for c in calls[:3])
-    assert calls[3]["temperature"] == 0.0  # models that accept it keep the deterministic setting
+    assert calls[3]["temperature"] == 0.0

@@ -7,7 +7,6 @@ from market_research_agent.data.db import get_engine, init_db
 
 @pytest.fixture(scope="session")
 def engine() -> Engine:
-    """Real Postgres engine (requires `docker compose up -d`), with schema created once."""
     eng = get_engine()
     init_db(eng)
     return eng
@@ -15,7 +14,6 @@ def engine() -> Engine:
 
 @pytest.fixture
 def db_session(engine: Engine) -> Session:
-    """A session bound to a connection/transaction that's rolled back after each test."""
     connection = engine.connect()
     transaction = connection.begin()
     session = sessionmaker(bind=connection)()
