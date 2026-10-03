@@ -1,14 +1,4 @@
-"""Deployment preflight: check the production database and the Hugging Face token/Space.
-
-Reads DATABASE_URL and HF_TOKEN from the environment (never from arguments) and prints only
-non-sensitive facts: no hostnames, usernames, passwords or tokens. It is meant to run in CI
-(public logs) as well as locally.
-
-Usage:
-    python scripts/preflight.py [--space owner/name] [--require-data]
-
-Exit status is non-zero if a required check fails.
-"""
+"""Deployment preflight: check the production database and the Hugging Face token/Space"""
 
 import argparse
 import os
