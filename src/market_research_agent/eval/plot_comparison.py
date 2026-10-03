@@ -34,7 +34,16 @@ def comparison_figure(table: pd.DataFrame, n: int) -> Figure:
     ax.set_ylabel("RAGAS faithfulness (judge: DeepSeek)")
     ax.set_title(f"Quality vs cost: same {n} golden questions, same agent code")
     ax.grid(True, which="both", alpha=0.3, zorder=0)
-    fig.tight_layout()
+    fig.text(
+        0.5,
+        0.005,
+        "Faithfulness is measured on 20 filing questions (one run per model): gaps of a few "
+        "hundredths are within noise.",
+        ha="center",
+        fontsize=7.5,
+        color="#555555",
+    )
+    fig.tight_layout(rect=(0, 0.03, 1, 1))
     return fig
 
 
