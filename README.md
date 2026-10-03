@@ -282,8 +282,37 @@ Retrieval ablation (50 filing questions, k=6):
 Findings: the keyword leg alone is weak here, so plain RRF slightly trails dense-only; the
 cross-encoder rerank gives the clear win, so it is on by default (`USE_RERANKER`). The ranking of the
 four retrievers is the same as on the original 23 questions. With 50 questions the gaps are clearer
-but still not tested for statistical significance. Only DeepSeek has been run end to end so
-far; use `--provider`/`--model` to add OpenAI or Claude rows to the comparison.
+but still not tested for statistical significance.
+
+### Provider comparison
+
+Same agent code, same 69 golden questions (every non-filing question plus 20 evenly spaced filing
+questions covering all five companies), one run per model, cache off. Only the agent model changes: the
+grading call and the RAGAS judge are DeepSeek in every run. Cost per question includes that grading call.
+
+![Quality versus cost across four models](docs/images/provider-frontier.png)
+
+| Model | $/question | Faithfulness | Answer relevancy | Context recall | Numeric facts | Cited | False refusals | p50 latency |
+|---|---|---|---|---|---|---|---|---|
+| DeepSeek (default) | $0.0008 | 0.908 | 0.820 | 0.883 | 100% | 100% | 0 | 4.2 s |
+| GPT-4o mini | $0.0005 | 0.826 | 0.876 | 0.969 | 90% | 87% | 4 | 4.6 s |
+| Claude Haiku 4.5 | $0.0045 | 0.934 | 0.890 | 0.842 | 100% | 97% | 1 | 3.9 s |
+| Claude Sonnet 5.5 | $0.0111 | 0.916 | 0.797 | 0.900 | 100% | 100% | 0 | 6.9 s |
+
+The whole comparison cost about $1.40 (agent $1.16, RAGAS judge $0.27). What it shows:
+- **Cheapest was not best.** GPT-4o mini is the cheapest but wrongly refused 4 legitimate filing questions
+  ("not related to financial performance"), which also cost it citations, and it picked a stale quarter
+  for one fundamentals lookup. Cost per *correct* answer, not per call, is the number that matters.
+- **Paying more did not buy faithfulness here.** Sonnet 5.5 costs about 14x DeepSeek per question for the same
+  faithfulness (0.916 vs 0.908); Haiku 4.5 costs about 5.6x for +0.026, within noise.
+- **DeepSeek holds up as the default**: every deterministic check passed at the lowest cost of the models that
+  never over-refused.
+- **Caveats, stated plainly:** RAGAS ran on only 20 filing questions with one run per model, so gaps of a few
+  hundredths are noise; the judge is DeepSeek, which may favour its own phrasing (not tested); prices are list
+  prices as of 2026-10-02.
+
+Reproduce: `eval.run_eval --name <run> --filing-sample 20 --provider <p> --model <m>`, then `eval.compare` and
+`eval.plot_comparison --n 69`.
 
 ## API and UI (Phase 6)
 

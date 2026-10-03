@@ -18,5 +18,8 @@ no strict JSON-schema mode). Optional persistent response cache for dev and eval
 - DeepSeek occasionally answers in plain text instead of calling the schema function; structured
   calls retry with a changed prompt (so a cached bad answer is not replayed) and degrade gracefully.
 - Model names live in config only; provider prices live in one table used for cost reports.
-- Only DeepSeek has been run end to end so far; the provider-comparison table has one row until
-  OpenAI/Anthropic keys are added (`eval.run_eval --provider ...`).
+- Measured, not assumed: DeepSeek, GPT-4o mini, Claude Haiku 4.5 and Claude Sonnet 5.5 were run on the
+  same 69 golden questions (see the README's provider comparison). DeepSeek passed every deterministic
+  check at $0.0008 per question; GPT-4o mini was cheaper but over-refused (4 legitimate questions declined);
+  Sonnet 5.5 cost about 14x more for the same faithfulness. Claude 5.x models also reject an explicit
+  temperature, which the factory now leaves unset for them.
