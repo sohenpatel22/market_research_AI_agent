@@ -57,10 +57,25 @@ class Settings(BaseSettings):
                     return "postgresql+psycopg://" + v[len(prefix) :]
         return v
 
-    @field_validator("langfuse_host", mode="before")
+    @field_validator(
+        "deepseek_api_key",
+        "openai_api_key",
+        "anthropic_api_key",
+        "langfuse_public_key",
+        "langfuse_secret_key",
+        "langfuse_host",
+        mode="before",
+    )
     @classmethod
-    def _blank_host_means_default(cls, v):
-        # CI passes unset secrets as empty strings.
+    def _clean_secret(cls, v):
+        # Values pasted from a .env file into CI secrets can keep their quotes; empty means unset.
+        if isinstance(v, str):
+            v = v.strip().strip("\"'").strip()
+        return v or None
+
+    @field_validator("langfuse_host", mode="after")
+    @classmethod
+    def _default_host(cls, v):
         return v or "https://cloud.langfuse.com"
 
 
