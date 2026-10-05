@@ -1,4 +1,4 @@
-"""Cheap, comparable evaluation subsets, and re-scoring a saved run on one without any LLM"""
+"""Smaller, comparable evaluation subsets, and re-scoring a saved run on one without LLM calls"""
 
 import json
 from pathlib import Path

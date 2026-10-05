@@ -23,7 +23,7 @@ class Base(DeclarativeBase):
 
 
 def engine_options(url: str) -> dict:
-    """Connection settings that suit both a local Postgres and a serverless one (e.g"""
+    """Connection settings that suit both a local Postgres and a serverless one"""
     connect_args: dict = {"connect_timeout": 30}
     if "-pooler" in url or "pgbouncer" in url:
         connect_args["prepare_threshold"] = None

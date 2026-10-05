@@ -18,7 +18,7 @@ async def stream_events(
     make_iterator: Callable[[], Iterator[dict]],
     to_message: Callable[[dict], str],
 ) -> AsyncIterator[str]:
-    """Consume `make_iterator()` entirely inside a single worker thread (tracing contexts are"""
+    """Consume `make_iterator()` inside one worker thread so tracing contexts stay intact"""
     events: queue.Queue = queue.Queue()
     stop = threading.Event()
 
@@ -57,7 +57,7 @@ def _public_error(exc: Exception) -> str:
 
 
 def iter_in_thread(make_iterator: Callable[[], Iterator[dict]]) -> Iterator[dict]:
-    """Synchronous counterpart of `stream_events` for callers that iterate on a thread pool (e.g"""
+    """Synchronous counterpart of `stream_events` for callers that iterate on a thread pool"""
     events: queue.Queue = queue.Queue()
     stop = threading.Event()
 

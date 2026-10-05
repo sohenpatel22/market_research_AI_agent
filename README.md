@@ -22,7 +22,7 @@ docker compose --profile tools run --rm tools   # load prices, fundamentals and 
 ```
 
 No Docker? See [Setup](#setup) to run it with `uv`. Hosted deployment is described under
-[Deployment](#deployment-phase-8).
+[Deployment](#deployment).
 
 ## Highlights
 
@@ -147,7 +147,7 @@ uv run dvc push               # uploads the data to the local remote (dvc-storag
 uv run dvc pull                # restores data/raw/ from the local remote
 ```
 
-## Forecasting models (Phase 2)
+## Forecasting models
 
 ```bash
 uv run python -m market_research_agent.models.train        # trains, evaluates, logs to MLflow
@@ -188,7 +188,7 @@ The LSTM beats HAR (Diebold-Mariano p = 0.001). The direction classifier is weak
 (test ROC-AUC 0.62, accuracy below the 65% always-up base rate), which is the honest expectation for
 return prediction. Outputs are statistical estimates, not investment advice.
 
-## Agent (Phase 3)
+## Agent
 
 `src/market_research_agent/agent/` is a LangGraph state machine:
 `route -> gather -> generate -> grade -> (rewrite -> gather ...) -> finalize`.
@@ -210,7 +210,7 @@ uv run python -m market_research_agent.agent.cli "What supply chain risks does A
 
 The provider is chosen with `LLM_PROVIDER` (`deepseek` | `openai` | `anthropic`); see `.env.example`.
 
-## Observability and cost control (Phase 4)
+## Observability and cost control
 
 Use `agent/service.py::ask()` (the API, CLI and evals all go through it). With Langfuse configured
 each question is one trace: route, tool calls and every LLM call with tokens, cost and latency,
@@ -233,7 +233,7 @@ Keeping LLM spend low:
   question, not once per retry;
 * structured-output calls retry (with a changed prompt) if the model skips the function call.
 
-## Evaluation (Phase 5)
+## Evaluation
 
 `eval/golden_dataset.json` holds 99 questions in eight categories:
 
@@ -323,7 +323,7 @@ The whole comparison cost about $1.40 (agent $1.16, RAGAS judge $0.27). What it 
 Reproduce: `eval.run_eval --name <run> --filing-sample 20 --provider <p> --model <m>`, then `eval.compare` and
 `eval.plot_comparison --n 69`.
 
-## API and UI (Phase 6)
+## API and UI
 
 ```bash
 uv run python -m market_research_agent.api      # http://localhost:7860 (UI at /, docs at /docs)
@@ -356,7 +356,7 @@ Design notes:
   **Forecast**, and Matplotlib/Seaborn charts (relative performance, return distribution, correlation)
   in **Market data**.
 
-## Docker (Phase 7)
+## Docker
 
 ```bash
 make docker-up                  # builds the image, starts Postgres + the app on http://localhost:7860
@@ -385,7 +385,7 @@ CI (`docker-build` job) builds the runtime image, checks it runs as UID 1000 wit
 layers, then starts the container against a Postgres service and asserts `/health`, the UI and request
 validation respond.
 
-## Deployment (Phase 8)
+## Deployment
 
 **Status: deployment automation is implemented; public hosting is deferred pending the choice of a
 hosting platform** ([ADR 0006](docs/adr/0006-hosting-constraints.md)). The container image, the production
