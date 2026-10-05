@@ -405,6 +405,7 @@ GitHub (master) --> CI: lint, tests, DeepEval gate, Docker build + container smo
 | `ci.yml` | push / PR | lint, tests, DeepEval gate, Docker build + container smoke test |
 | `seed-database.yml` | weekly + manual | runs the ingestion pipeline against the production database and refreshes the published forecasts (idempotent) |
 | `deploy.yml` | manual | copies secrets into the Space, uploads a minimal build context, waits for the build, smoke-tests the live URL |
+| `deploy-oracle.yml` | manual | builds the arm64 image, pushes it to GHCR and restarts it on an Oracle Cloud Always Free VM ([setup guide](docs/oracle-deploy.md)) |
 | `preflight.yml` | manual | checks the database, pgvector and the Hugging Face token without printing secrets |
 
 **Secrets** (GitHub repo settings): `DATABASE_URL`, `DEEPSEEK_API_KEY`, `LANGFUSE_PUBLIC_KEY`,
