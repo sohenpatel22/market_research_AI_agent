@@ -1,0 +1,82 @@
+name: Deploy to Oracle Cloud
+
+# Builds the arm64 image, pushes it to GitHub Container Registry and restarts it on the Oracle VM.
+# Manual trigger; setup steps are in docs/oracle-deploy.md.
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-oracle
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  IMAGE: ghcr.io/${{ github.repository_owner }}/market-research-agent
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: oracle
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-qemu-action@v3
+        with:
+          platforms: arm64
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push arm64 image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: runtime
+          platforms: linux/arm64
+          push: true
+          tags: |
+            ${{ env.IMAGE }}:${{ github.sha }}
+            ${{ env.IMAGE }}:latest
+          build-args: GIT_SHA=${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Configure SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          echo "${{ secrets.ORACLE_SSH_KEY }}" > ~/.ssh/id_deploy
+          chmod 600 ~/.ssh/id_deploy
+          ssh-keyscan -H "${{ secrets.ORACLE_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy
+        env:
+          SSH: ssh -i ~/.ssh/id_deploy ${{ secrets.ORACLE_USER || 'ubuntu' }}@${{ secrets.ORACLE_HOST }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          LANGFUSE_PUBLIC_KEY: ${{ secrets.LANGFUSE_PUBLIC_KEY }}
+          LANGFUSE_SECRET_KEY: ${{ secrets.LANGFUSE_SECRET_KEY }}
+          LANGFUSE_BASE_URL: ${{ secrets.LANGFUSE_BASE_URL }}
+        run: |
+          {
+            echo "DATABASE_URL=$DATABASE_URL"
+            echo "DEEPSEEK_API_KEY=$DEEPSEEK_API_KEY"
+            echo "LANGFUSE_PUBLIC_KEY=$LANGFUSE_PUBLIC_KEY"
+            echo "LANGFUSE_SECRET_KEY=$LANGFUSE_SECRET_KEY"
+            echo "LANGFUSE_BASE_URL=$LANGFUSE_BASE_URL"
+          } | $SSH 'umask 077; cat > ~/market-research-agent.env'
+          scp -i ~/.ssh/id_deploy deploy/oracle/run.sh "${{ secrets.ORACLE_USER || 'ubuntu' }}@${{ secrets.ORACLE_HOST }}:run.sh"
+          echo "${{ secrets.GITHUB_TOKEN }}" | $SSH 'docker login ghcr.io -u "${{ github.actor }}" --password-stdin'
+          $SSH "GIT_SHA=${{ github.sha }} bash run.sh ${{ env.IMAGE }}:${{ github.sha }}"
+
+      - name: Smoke test
+        run: |
+          curl -sf --retry 5 --retry-delay 5 "http://${{ secrets.ORACLE_HOST }}/health"
+          curl -sf "http://${{ secrets.ORACLE_HOST }}/" | grep -q "Market Research Agent"

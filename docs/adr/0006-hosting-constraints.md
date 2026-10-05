@@ -28,6 +28,8 @@ once a platform is selected; no application change is needed because the same im
 ## Options for hosting
 - Hugging Face Docker Space, on an account plan that includes managed CPU hardware.
 - A serverless container service (for example Google Cloud Run), which scales to zero and needs a billing account.
+- Oracle Cloud Always Free (Ampere A1, up to 4 OCPU / 24 GB). It needs a card for verification but no charge
+  on Always Free resources. A deployment workflow for it is in `deploy-oracle.yml` ([guide](../oracle-deploy.md)).
 - A container service on AWS (App Runner or ECS), which suits the AWS experience listed on the resume.
 - Small always-free tiers (Render, Fly.io) were considered but do not provide the roughly 1.5 GB of memory
   that PyTorch and the two models need.
