@@ -1,4 +1,4 @@
-"""LangGraph agent: route -> gather -> generate -> grade -> (rewrite -> gather ...) ->"""
+"""LangGraph agent: route, gather, generate, grade, with bounded rewrite retries"""
 
 import math
 from collections.abc import Callable, Iterator
