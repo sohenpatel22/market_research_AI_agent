@@ -1,13 +1,4 @@
-"""Model Context Protocol server: expose the research tools to any MCP client (Claude Desktop,
-IDE agents, ...).
-
-    uv run python -m market_research_agent.mcp_server                # stdio (default)
-    uv run python -m market_research_agent.mcp_server --http         # streamable HTTP
-
-Four tools: `search_filings`, `forecast_ticker`, `lookup_market_data` need only the database and the
-trained models; `ask_research_agent` runs the full agent and needs an LLM key.
-Requires the `mcp` extra:  uv sync --extra mcp
-"""
+"""MCP server for the research tools (needs the `mcp` extra; `--http` for streamable HTTP)"""
 
 import argparse
 from typing import Any, Literal

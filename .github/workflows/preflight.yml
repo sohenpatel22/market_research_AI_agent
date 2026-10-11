@@ -11,9 +11,6 @@ on:
         description: "Fail if the database tables are empty"
         type: boolean
         default: false
-  push:
-    branches: [phase-8-deploy]
-    paths: [".github/workflows/preflight.yml", "scripts/preflight.py"]
 
 jobs:
   preflight:
