@@ -60,11 +60,12 @@ src/market_research_agent/
     viz/            # Gradio UI, Plotly / Matplotlib charts
     deploy/         # Hugging Face Space deployer
     mcp_server.py   # Model Context Protocol server
+deploy/oracle/      # scripts for the Oracle Cloud VM
 tests/              # unit + integration tests; tests/eval is the paid DeepEval gate
 docs/               # architecture, model card, ADRs, Power BI recipe, demo script
 eval/               # golden dataset, thresholds, saved results
 artifacts/models/   # the trained model bundle used for inference (committed, KBs)
-.github/workflows/  # CI, deploy, seed, preflight
+.github/workflows/  # CI, seed, retrain, preflight, deploy
 Dockerfile, docker-compose.yml
 ```
 
@@ -109,10 +110,10 @@ make db-down # stop Postgres
 
 Schema (see [`src/market_research_agent/data/models.py`](src/market_research_agent/data/models.py)):
 
-- **prices** — daily OHLCV bars, one row per `(ticker, date)`.
-- **fundamentals** — quarterly financial line items, stored long/tidy as one row per
+- **prices**: daily OHLCV bars, one row per `(ticker, date)`.
+- **fundamentals**: quarterly financial line items, stored long/tidy as one row per
   `(ticker, period, metric)` rather than wide, since the set of reported metrics varies by company.
-- **documents** — chunked 10-K/10-Q filing text with a pgvector `embedding` column (384-dim,
+- **documents**: chunked 10-K/10-Q filing text with a pgvector `embedding` column (384-dim,
   matching the default `BAAI/bge-small-en-v1.5` sentence-transformer).
 
 ### Ingestion
@@ -134,7 +135,7 @@ against the database.
 
 ### Versioning raw data with DVC
 
-`data/raw/` is tracked with [DVC](https://dvc.org/), not git — git only tracks the small
+`data/raw/` is tracked with [DVC](https://dvc.org/), not git. Git only tracks the small
 `data/raw.dvc` pointer file. A local DVC remote lives at `dvc-storage/` (git-ignored) for now.
 
 ```bash
@@ -163,7 +164,7 @@ Code lives in `src/market_research_agent/models/`. Everything is evaluated on a 
 * **Direction (next ~21 trading days)**: scikit-learn logistic regression / gradient boosting, picked
   on validation ROC-AUC; reports ROC-AUC, F1 and a confusion matrix against the base rate.
 * **Inference**: `forecast(ticker, horizon="1w"|"1m") -> ForecastResult` (Pydantic), loading the newest
-  bundle from `artifacts/models/`. This is what the agent's forecast tool will call.
+  bundle from `artifacts/models/`. The agent's forecast tool calls this.
 
 Latest run (5 tickers, ~10y daily data, test set = most recent 15%):
 
@@ -387,33 +388,33 @@ validation respond.
 
 ## Deployment
 
-**Status: deployment automation is implemented; public hosting is deferred pending the choice of a
-hosting platform** ([ADR 0006](docs/adr/0006-hosting-constraints.md)). The container image, the production
-database and the deploy workflow are in place and were validated up to the platform's account requirements.
-The application runs end to end locally with a single command, and the deploy workflow is triggered manually.
-
-What exists and works:
+The app runs end to end locally with `make docker-up`. Public hosting is the one piece still open; the image,
+the production database and the deploy workflows are ready ([ADR 0006](docs/adr/0006-hosting-constraints.md)).
 
 ```
-GitHub (master) --> CI: lint, tests, DeepEval gate, Docker build + container smoke test
-                \--> seed-database.yml (weekly + manual) --> Neon Postgres (pgvector): prices, filings, forecasts
-                \--> deploy.yml (manual) --> HF Space: secrets, upload, wait for build, smoke-test /health, UI, /chat
+GitHub (master) --> ci.yml: lint, tests, DeepEval gate, Docker build + container smoke test
+                \--> seed-database.yml (weekly) --> Neon Postgres (pgvector): prices, filings, forecasts
+                \--> retrain.yml (monthly) --> pull request with a new model bundle, only if it is better
+                \--> deploy-oracle.yml (manual) --> arm64 image on an Oracle Cloud Always Free VM
+                \--> deploy.yml (manual) --> Hugging Face Space
 ```
 
 | Workflow | Trigger | What it does |
 |---|---|---|
 | `ci.yml` | push / PR | lint, tests, DeepEval gate, Docker build + container smoke test |
 | `seed-database.yml` | weekly + manual | runs the ingestion pipeline against the production database and refreshes the published forecasts (idempotent) |
-| `deploy.yml` | manual | copies secrets into the Space, uploads a minimal build context, waits for the build, smoke-tests the live URL |
-| `deploy-oracle.yml` | manual | builds the arm64 image, pushes it to GHCR and restarts it on an Oracle Cloud Always Free VM ([setup guide](docs/oracle-deploy.md)) |
+| `retrain.yml` | monthly + manual | walk-forward retraining check; opens a PR only when a new model is warranted |
+| `deploy-oracle.yml` | manual | builds the arm64 image, pushes it to GHCR and restarts it on the VM ([setup guide](docs/oracle-deploy.md)) |
+| `deploy.yml` | manual | copies secrets into a Hugging Face Space, uploads the build context, smoke-tests the live URL |
 | `preflight.yml` | manual | checks the database, pgvector and the Hugging Face token without printing secrets |
 
 **Secrets** (GitHub repo settings): `DATABASE_URL`, `DEEPSEEK_API_KEY`, `LANGFUSE_PUBLIC_KEY`,
-`LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL`, and `HF_TOKEN` (fine-grained, write access) for the deploy.
-A repository variable `SEC_EDGAR_USER_AGENT` ("Your Name you@example.com") is recommended for ingestion.
+`LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL`, plus `HF_TOKEN` for the Space deploy or `ORACLE_HOST` and
+`ORACLE_SSH_KEY` for the Oracle deploy. A repository variable `SEC_EDGAR_USER_AGENT` ("Your Name you@example.com")
+is recommended for ingestion.
 
-**Cost:** infrastructure is free (Neon free tier, GitHub Actions); the only variable cost is the LLM,
-about $0.001 per question on DeepSeek, and the app rate-limits clients (`RATE_LIMIT_PER_MINUTE`).
+**Cost:** the infrastructure runs on free tiers (Neon, GitHub Actions, Oracle Always Free). The only variable
+cost is the LLM, about $0.001 per question on DeepSeek, and the app rate-limits clients (`RATE_LIMIT_PER_MINUTE`).
 
 ## MCP server
 
@@ -447,7 +448,7 @@ Tools: `search_filings`, `forecast_ticker`, `lookup_market_data` (database and m
   the project deliverable.
 
 **Next**
-- Run the provider comparison for OpenAI and Anthropic (the harness is ready; only DeepSeek is measured).
-- Enlarge the golden set and have a second person label it; add multi-turn questions and conversation memory.
+- Publish the hosted demo and add authentication.
+- Have a second person label the golden set, and add multi-turn questions with conversation memory.
 - Add distribution-level drift monitoring (for example Evidently) to the retraining job, and more tickers.
-- Publish a hosted demo (a Hugging Face Space or another container host) and add authentication.
+- Repeat the provider comparison with several runs per model, to put error bars on the small gaps.
