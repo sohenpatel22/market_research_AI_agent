@@ -29,7 +29,7 @@ No Docker? See [Setup](#setup) to run it with `uv`. Hosted deployment is describ
 | Area | What is in the repo |
 |---|---|
 | Agent | LangGraph route / gather / generate / grade / rewrite loop with bounded retries; provider-agnostic LLM (DeepSeek, OpenAI, Anthropic); prompt-injection guardrails; verified citations |
-| Retrieval | pgvector + Postgres full-text fused with RRF, section-aware 10-K/10-Q chunking, cross-encoder rerank (NDCG@6 0.59 vs 0.45 for plain hybrid) |
+| Retrieval | pgvector + Postgres full-text fused with RRF, section-aware 10-K/10-Q chunking, cross-encoder rerank (NDCG@6 0.56 vs 0.44 for plain hybrid on 50 filing questions) |
 | Models | PyTorch LSTM beats HAR-RV / GARCH / ARIMA on next-week volatility (Diebold-Mariano p = 0.001); honest, weak direction classifier; MLflow tracking |
 | Evaluation | 99-question golden set; deterministic checks, RAGAS (faithfulness 0.95), DeepEval CI gate; retrieval ablation; about $0.001 per question |
 | Observability | Langfuse traces, scores, prompt registry, per-model cost |
