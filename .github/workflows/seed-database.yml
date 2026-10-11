@@ -33,7 +33,7 @@ jobs:
         run: uv sync --extra ingest
 
       - name: Cache Hugging Face models
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: ~/.cache/huggingface
           key: hf-${{ runner.os }}-bge-small-msmarco-minilm
