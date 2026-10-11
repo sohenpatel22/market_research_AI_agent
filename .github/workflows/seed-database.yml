@@ -21,7 +21,7 @@ jobs:
       SEC_EDGAR_USER_AGENT: ${{ vars.SEC_EDGAR_USER_AGENT || 'Market Research Agent github-actions@users.noreply.github.com' }}
       UV_LINK_MODE: copy
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: astral-sh/setup-uv@v5
         with:
