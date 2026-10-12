@@ -13,7 +13,7 @@ def test_front_matter_declares_a_docker_space_on_7860():
 
 
 def test_bundle_contains_only_what_the_dockerfile_needs(tmp_path):
-    out = space.build_bundle(REPO, tmp_path / "bundle")
+    out = space.build_bundle(REPO, tmp_path / "bundle", sdk="docker")
     names = {p.relative_to(out).as_posix() for p in out.rglob("*") if p.is_file()}
     for required in ("Dockerfile", "pyproject.toml", "uv.lock", "README.md"):
         assert required in names
@@ -130,6 +130,19 @@ def test_smoke_test_requires_an_ok_health_and_the_ui(monkeypatch):
         space.smoke_test("https://x.hf.space", attempts=1)
 
 
+def test_gradio_bundle_has_app_requirements_and_no_dockerfile(tmp_path):
+    out = space.build_bundle(REPO, tmp_path / "bundle")
+    names = {p.relative_to(out).as_posix() for p in out.rglob("*") if p.is_file()}
+    assert {"app.py", "requirements.txt", "README.md"} <= names
+    assert "Dockerfile" not in names
+    readme = (out / "README.md").read_text(encoding="utf-8")
+    assert "sdk: gradio" in readme and "app_file: app.py" in readme
+    requirements = (out / "requirements.txt").read_text(encoding="utf-8")
+    assert requirements.startswith(space.TORCH_CPU_INDEX)
+    assert "torch==" in requirements and "gradio==" in requirements
+    compile((out / "app.py").read_text(encoding="utf-8"), "app.py", "exec")
+
+
 def test_ensure_space_creates_a_docker_cpu_space_idempotently():
     calls = []
 
@@ -137,7 +150,7 @@ def test_ensure_space_creates_a_docker_cpu_space_idempotently():
         def create_repo(self, space_id, **kwargs):
             calls.append((space_id, kwargs))
 
-    space.ensure_space(Api(), "o/n")
+    space.ensure_space(Api(), "o/n", sdk="docker")
     assert len(calls) == 1
     space_id, kwargs = calls[0]
     assert space_id == "o/n"
