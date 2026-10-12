@@ -42,7 +42,9 @@ def _limit_message(limiter: SlidingWindowLimiter, request: gr.Request | None) ->
     return f"Too many requests. Please wait about {int(retry) + 1}s and try again."
 
 
-def build_demo(runtime: Runtime, limiter: SlidingWindowLimiter) -> gr.Blocks:
+def build_demo(
+    runtime: Runtime, limiter: SlidingWindowLimiter, daily: SlidingWindowLimiter | None = None
+) -> gr.Blocks:
     def chat_fn(question: str, request: gr.Request):
         """Generator: yields (progress, answer, sources, facts, status) as the agent works"""
         question = (question or "").strip()
@@ -52,6 +54,15 @@ def build_demo(runtime: Runtime, limiter: SlidingWindowLimiter) -> gr.Blocks:
             return
         if (msg := _limit_message(limiter, request)) is not None:
             yield "", msg, empty, "", ""
+            return
+        if daily is not None and daily.check("all") is not None:
+            yield (
+                "",
+                "The daily limit for this demo has been reached. Please try again tomorrow.",
+                empty,
+                "",
+                "",
+            )
             return
         try:
             deps, graph = runtime.deps, runtime.graph
@@ -184,7 +195,7 @@ with a cross-encoder reranker), runs a trained volatility/direction forecaster a
 database lookups, drafts a cited answer, then has a judge model verify it against the sources,
 rewriting the search and retrying if it fails.
 
-- **LLM provider:** `{settings.llm_provider}` (switchable: DeepSeek, OpenAI, Anthropic)
+- **LLM:** `{settings.llm_provider}` (one provider per deployment, set by the server)
 - **Tracing (Langfuse):** {tracing}
 - **Forecasts:** LSTM beats HAR-RV, GARCH and ARIMA on next-week volatility (Diebold-Mariano
   p = 0.001); the next-month direction model is weak (ROC-AUC about 0.6).
@@ -199,5 +210,5 @@ def mount_ui(app: FastAPI, runtime: Runtime) -> FastAPI:
     limiter = getattr(app.state, "limiter", None) or SlidingWindowLimiter(
         settings.rate_limit_per_minute
     )
-    demo = build_demo(runtime, limiter)
+    demo = build_demo(runtime, limiter, getattr(app.state, "daily", None))
     return gr.mount_gradio_app(app, demo, path="/")

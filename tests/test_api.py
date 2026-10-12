@@ -147,6 +147,18 @@ def test_rate_limit_returns_429_with_retry_after():
     assert client.get("/health").status_code == 200
 
 
+def test_daily_limit_caps_chat_but_not_forecasts_or_health(monkeypatch):
+    from market_research_agent.config import settings
+
+    monkeypatch.setattr(settings, "daily_request_limit", 2)
+    client = make_client()
+    for _ in range(2):
+        assert client.post("/chat", json={"question": "valid question"}).status_code == 200
+    r = client.post("/chat", json={"question": "valid question"})
+    assert r.status_code == 429 and "daily limit" in r.json()["detail"]
+    assert client.get("/health").status_code == 200
+
+
 def test_limiter_window_expires():
     now = [0.0]
     lim = SlidingWindowLimiter(1, 10, clock=lambda: now[0])

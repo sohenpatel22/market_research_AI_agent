@@ -40,6 +40,14 @@ def client_key(request: Request) -> str:
     return request.client.host if request.client else "unknown"
 
 
+def enforce_daily(daily: SlidingWindowLimiter) -> None:
+    if daily.check("all") is not None:
+        raise HTTPException(
+            status_code=429,
+            detail="The daily limit for this demo has been reached. Please try again tomorrow.",
+        )
+
+
 def enforce(limiter: SlidingWindowLimiter, request: Request) -> None:
     retry_after = limiter.check(client_key(request))
     if retry_after is not None:

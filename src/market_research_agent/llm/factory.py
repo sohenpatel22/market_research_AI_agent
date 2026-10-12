@@ -39,6 +39,8 @@ def _build(
             f"{provider.upper()}_API_KEY is not set (LLM provider is '{provider}')."
         )
 
+    kwargs.setdefault("max_tokens", cfg.llm_max_output_tokens)
+
     if cfg.llm_cache:
         from market_research_agent.llm.cache import get_llm_cache
 
