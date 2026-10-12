@@ -51,13 +51,18 @@ import uvicorn  # noqa: E402
 from market_research_agent.api.main import create_app  # noqa: E402
 
 try:
+    import gradio as gr
     import spaces
 
-    # ZeroGPU Spaces refuse to start without a GPU-decorated function; the app itself runs on CPU.
+    # ZeroGPU only keeps a Space alive if a launched Gradio app has a GPU-decorated event.
+    # This side app satisfies that check; the real app is served by uvicorn below.
     @spaces.GPU
-    def _zerogpu_probe() -> int:
-        return 0
+    def _zerogpu_probe() -> str:
+        return "ok"
 
+    with gr.Blocks() as _probe:
+        gr.Button("probe").click(_zerogpu_probe, outputs=gr.Textbox())
+    _probe.launch(server_name="127.0.0.1", server_port=7861, prevent_thread_lock=True)
 except ImportError:
     pass
 
