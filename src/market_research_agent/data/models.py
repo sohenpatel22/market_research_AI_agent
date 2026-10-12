@@ -37,7 +37,7 @@ class Price(Base):
 
 
 class Fundamental(Base):
-    """A single reported metric (e.g"""
+    """A single reported metric for one ticker and period"""
 
     __tablename__ = "fundamentals"
     __table_args__ = (

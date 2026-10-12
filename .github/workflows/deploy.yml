@@ -11,7 +11,7 @@ concurrency:
 
 jobs:
   deploy:
-    # Only deploy a green build of master (or a manual run).
+    # Only deploy a green build of main (or a manual run).
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 45

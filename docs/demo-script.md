@@ -1,6 +1,6 @@
 # 90-second demo script
 
-Run `make docker-up`, open <http://localhost:7860>. Record at 1280x800 with the browser zoomed to 110%.
+Run `make docker-up` and open <http://localhost:7860> (or use the live Space linked in the README). Record at 1280x800 with the browser zoomed to 110%.
 Have the Langfuse project open in a second tab for the last beat.
 
 | Time | Do | Say (about) |
