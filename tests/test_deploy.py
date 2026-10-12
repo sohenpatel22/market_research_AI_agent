@@ -140,6 +140,7 @@ def test_gradio_bundle_has_app_requirements_and_no_dockerfile(tmp_path):
     requirements = (out / "requirements.txt").read_text(encoding="utf-8")
     assert requirements.splitlines().count(space.ZEROGPU_TORCH) == 1
     assert "gradio==" in requirements and "extra-index-url" not in requirements
+    assert not [ln for ln in requirements.splitlines() if ln.startswith("pydantic==")]
     compile((out / "app.py").read_text(encoding="utf-8"), "app.py", "exec")
 
 

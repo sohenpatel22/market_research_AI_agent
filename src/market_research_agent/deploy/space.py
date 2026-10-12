@@ -104,6 +104,8 @@ def export_requirements(repo_root: Path) -> str:
         check=True,
     ).stdout
     pins = [ln for ln in out.splitlines() if ln and not ln.startswith(("#", " "))]
+    # Gradio on the Space caps pydantic below the locked version, so leave it to the resolver.
+    pins = [ln for ln in pins if not ln.startswith(("pydantic==", "pydantic-core=="))]
     pins = [ZEROGPU_TORCH if ln.startswith("torch==") else ln for ln in pins]
     return "\n".join(dict.fromkeys(pins)) + "\n"
 
