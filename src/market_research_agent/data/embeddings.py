@@ -9,7 +9,7 @@ from market_research_agent.config import settings
 
 @lru_cache(maxsize=1)
 def get_embedding_model() -> SentenceTransformer:
-    return SentenceTransformer(settings.embedding_model_name)
+    return SentenceTransformer(settings.embedding_model_name, device="cpu")
 
 
 def embed_texts(texts: list[str]) -> list[list[float]]:

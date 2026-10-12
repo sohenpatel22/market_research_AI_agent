@@ -1,7 +1,7 @@
 # ADR 0006: Hosting platform and deployment status
 
 ## Status
-Deployment automation implemented; public hosting deferred pending the choice of a platform.
+Accepted. The app is hosted on a Hugging Face Gradio Space; the Docker image is kept as the portable artifact.
 
 ## Context
 The target was a public demo: a Docker image running on a managed container host, backed by a managed
@@ -33,3 +33,10 @@ once a platform is selected; no application change is needed because the same im
 - A container service on AWS (App Runner or ECS), which suits the AWS experience listed on the resume.
 - Small always-free tiers (Render, Fly.io) were considered but do not provide the roughly 1.5 GB of memory
   that PyTorch and the two models need.
+
+## Outcome
+The Space on ZeroGPU hardware runs the app on CPU. Four adjustments were needed and are covered by the deploy
+module: torch pinned to a release ZeroGPU accepts, pydantic left to the resolver (Gradio caps it), Gradio's SSR
+proxy disabled so uvicorn can bind the port, and a small GPU-decorated probe app so the platform's startup
+check passes. The embedding model and reranker are loaded with an explicit CPU device because ZeroGPU emulates CUDA.
+`deploy.yml` redeploys on demand and smoke-tests `/health`, the UI and a real `/chat` question.

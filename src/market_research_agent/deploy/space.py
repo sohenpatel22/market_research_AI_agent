@@ -1,8 +1,9 @@
-"""Deploy the app to a Hugging Face Docker Space and smoke-test the live URL"""
+"""Deploy the app to a Hugging Face Space (Gradio or Docker SDK) and smoke-test the live URL"""
 
 import argparse
 import os
 import shutil
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -21,6 +22,55 @@ short_description: Cited research agent over SEC filings, prices and forecasts
 ---
 
 """
+
+GRADIO_FRONT_MATTER = """---
+title: Market Research Agent
+emoji: "\\U0001F4C8"
+colorFrom: blue
+colorTo: green
+sdk: gradio
+sdk_version: "{gradio_version}"
+python_version: "3.12.12"
+app_file: app.py
+pinned: false
+short_description: Cited research agent over SEC filings, prices and forecasts
+---
+
+"""
+
+# Space entry point: serves the FastAPI app (API plus the mounted Gradio UI) on the Space port.
+APP_FILE = """import os
+import sys
+
+sys.path.insert(0, "src")
+# The Space enables Gradio's Node SSR proxy, which would take the port uvicorn needs.
+os.environ["GRADIO_SSR_MODE"] = "False"
+
+import uvicorn  # noqa: E402
+
+from market_research_agent.api.main import create_app  # noqa: E402
+
+try:
+    import gradio as gr
+    import spaces
+
+    # ZeroGPU only keeps a Space alive if a launched Gradio app has a GPU-decorated event.
+    # This side app satisfies that check; the real app is served by uvicorn below.
+    @spaces.GPU
+    def _zerogpu_probe() -> str:
+        return "ok"
+
+    with gr.Blocks() as _probe:
+        gr.Button("probe").click(_zerogpu_probe, outputs=gr.Textbox())
+    _probe.launch(server_name="127.0.0.1", server_port=7861, prevent_thread_lock=True)
+except ImportError:
+    pass
+
+uvicorn.run(create_app(), host="0.0.0.0", port=7860)  # noqa: S104
+"""
+
+# ZeroGPU accepts only specific torch releases; this is the newest that pyproject.toml allows.
+ZEROGPU_TORCH = "torch==2.13.0"
 
 # Everything the Dockerfile needs to build the runtime image.
 BUNDLE_FILES = ["Dockerfile", ".dockerignore", "pyproject.toml", "uv.lock"]
@@ -43,17 +93,50 @@ SMOKE_QUESTION = "What does NVIDIA say about export controls on its data center 
 TERMINAL_FAILURES = {"BUILD_ERROR", "RUNTIME_ERROR", "CONFIG_ERROR", "NO_APP_FILE"}
 
 
-def build_bundle(repo_root: Path, out_dir: Path) -> Path:
+def locked_version(repo_root: Path, package: str) -> str:
+    """Version of `package` pinned in uv.lock"""
+    lines = (repo_root / "uv.lock").read_text(encoding="utf-8").splitlines()
+    for i, line in enumerate(lines):
+        if line == f'name = "{package}"':
+            return lines[i + 1].split('"')[1]
+    raise SystemExit(f"{package} is not in uv.lock")
+
+
+def export_requirements(repo_root: Path) -> str:
+    """requirements.txt for a Gradio Space, pinned from the lockfile"""
+    out = subprocess.run(
+        ["uv", "export", "--no-dev", "--no-emit-project", "--no-hashes", "--frozen"],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout
+    pins = [ln for ln in out.splitlines() if ln and not ln.startswith(("#", " "))]
+    # Gradio on the Space caps pydantic below the locked version, so leave it to the resolver.
+    pins = [ln for ln in pins if not ln.startswith(("pydantic==", "pydantic-core=="))]
+    pins = [ZEROGPU_TORCH if ln.startswith("torch==") else ln for ln in pins]
+    return "\n".join(dict.fromkeys(pins)) + "\n"
+
+
+def build_bundle(repo_root: Path, out_dir: Path, sdk: str = "gradio") -> Path:
     """Assemble the minimal Space repo contents in `out_dir` (recreated from scratch)"""
     if out_dir.exists():
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
-    for name in BUNDLE_FILES:
-        shutil.copy2(repo_root / name, out_dir / name)
     for name in BUNDLE_DIRS:
         shutil.copytree(repo_root / name, out_dir / name, ignore=IGNORED)
     readme = (repo_root / "README.md").read_text(encoding="utf-8")
-    (out_dir / "README.md").write_text(FRONT_MATTER + readme, encoding="utf-8", newline="\n")
+    if sdk == "docker":
+        for name in BUNDLE_FILES:
+            shutil.copy2(repo_root / name, out_dir / name)
+        front = FRONT_MATTER
+    else:
+        (out_dir / "app.py").write_text(APP_FILE, encoding="utf-8", newline="\n")
+        (out_dir / "requirements.txt").write_text(
+            export_requirements(repo_root), encoding="utf-8", newline="\n"
+        )
+        front = GRADIO_FRONT_MATTER.format(gradio_version=locked_version(repo_root, "gradio"))
+    (out_dir / "README.md").write_text(front + readme, encoding="utf-8", newline="\n")
     return out_dir
 
 
@@ -91,18 +174,20 @@ def sync_files(api, space_id: str, bundle: Path, message: str) -> None:
     )
 
 
-def ensure_space(api, space_id: str) -> None:
-    """Create the Space as a Docker Space on free CPU hardware if it does not exist yet"""
+def ensure_space(api, space_id: str, sdk: str = "gradio") -> None:
+    """Create the Space on free CPU hardware if it does not exist yet"""
+    if api.repo_exists(space_id, repo_type="space"):
+        return
     api.create_repo(
         space_id,
         repo_type="space",
-        space_sdk="docker",
+        space_sdk=sdk,
         space_hardware="cpu-basic",
         exist_ok=True,
     )
 
 
-def ensure_cpu_hardware(api, space_id: str) -> str:
+def ensure_cpu_hardware(api, space_id: str, keep_existing: bool = False) -> str:
     """Make sure the Space runs on free CPU hardware"""
     runtime = api.get_space_runtime(space_id)
     requested = str(getattr(runtime, "requested_hardware", None) or "")
@@ -111,6 +196,9 @@ def ensure_cpu_hardware(api, space_id: str) -> str:
     try:
         api.request_space_hardware(space_id, "cpu-basic")
     except Exception as exc:  # noqa: BLE001
+        if keep_existing:
+            print(f"  keeping '{requested or 'unset'}' hardware ({exc})")
+            return requested
         raise RuntimeError(
             f"Space {space_id} runs on '{requested or 'unset'}' hardware and could not be moved to "
             "CPU hardware on this account plan. Delete the Space "
@@ -118,6 +206,25 @@ def ensure_cpu_hardware(api, space_id: str) -> str:
         ) from exc
     print(f"  hardware was '{requested or 'unset'}'; switched to cpu-basic (free)")
     return "cpu-basic"
+
+
+def print_logs(token: str, space_id: str, kind: str, max_lines: int = 60) -> None:
+    """Print the tail of the Space's build or container log (server-sent events)"""
+    lines: list[str] = []
+    try:
+        with httpx.stream(
+            "GET",
+            f"https://huggingface.co/api/spaces/{space_id}/logs/{kind}",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=httpx.Timeout(20, read=10),
+        ) as r:
+            for line in r.iter_lines():
+                if line.startswith("data:"):
+                    lines.append(line[5:].strip())
+    except httpx.HTTPError:
+        pass
+    print(f"--- {kind} log (last {max_lines} lines) ---")
+    print("\n".join(lines[-max_lines:]))
 
 
 def wait_until_running(api, space_id: str, timeout_s: int, poll_s: int = 15) -> str:
@@ -132,6 +239,9 @@ def wait_until_running(api, space_id: str, timeout_s: int, poll_s: int = 15) -> 
         if stage == "RUNNING":
             return stage
         if stage in TERMINAL_FAILURES:
+            token = getattr(api, "token", None)
+            if token:
+                print_logs(token, space_id, "build" if stage == "BUILD_ERROR" else "run")
             raise RuntimeError(
                 f"Space entered {stage}; see its build/container logs on Hugging Face"
             )
@@ -185,6 +295,7 @@ def deploy(
     wait: bool = True,
     chat_smoke: bool = False,
     timeout_s: int = 1800,
+    sdk: str = "gradio",
 ) -> str:
     from huggingface_hub import HfApi
 
@@ -200,8 +311,8 @@ def deploy(
         raise SystemExit(f"Missing required secrets: {', '.join(missing)}")
 
     print(f"Deploying {git_sha[:8]} to {space_id}")
-    ensure_space(api, space_id)
-    ensure_cpu_hardware(api, space_id)
+    ensure_space(api, space_id, sdk)
+    ensure_cpu_hardware(api, space_id, keep_existing=sdk == "gradio")
     # Secrets/variables first: uploading files is what triggers the (single) build.
     for key, value in secrets.items():
         api.add_space_secret(space_id, key, value)
@@ -209,7 +320,7 @@ def deploy(
     for key, value in space_variables(env, git_sha).items():
         api.add_space_variable(space_id, key, value)
 
-    bundle = build_bundle(repo_root, repo_root / ".space_bundle")
+    bundle = build_bundle(repo_root, repo_root / ".space_bundle", sdk)
     try:
         sync_files(api, space_id, bundle, f"Deploy {git_sha[:8]}")
     finally:
@@ -227,6 +338,7 @@ def deploy(
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--space", required=True, help="Space id, owner/name")
+    parser.add_argument("--sdk", choices=["gradio", "docker"], default="gradio")
     parser.add_argument("--no-wait", action="store_true", help="return right after uploading")
     parser.add_argument("--chat-smoke", action="store_true", help="also ask one real question")
     parser.add_argument("--timeout", type=int, default=1800, help="seconds to wait for the build")
@@ -239,6 +351,7 @@ def main() -> int:
         wait=not args.no_wait,
         chat_smoke=args.chat_smoke,
         timeout_s=args.timeout,
+        sdk=args.sdk,
     )
     return 0
 

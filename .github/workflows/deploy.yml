@@ -1,7 +1,7 @@
 name: Deploy to Hugging Face Space
 
-# Uploads the app to the Hugging Face Space and smoke-tests the live URL.
-# Manual trigger only until a hosting platform is confirmed (docs/adr/0006-hosting-constraints.md).
+# Uploads the app to the Hugging Face Space (Gradio SDK, free CPU hardware) and smoke-tests the live URL.
+# Pass --sdk docker to the deploy module to publish the Dockerfile build instead.
 on:
   workflow_dispatch:
 
@@ -17,9 +17,9 @@ jobs:
     timeout-minutes: 45
     environment:
       name: hugging-face-space
-      url: https://huggingface.co/spaces/SohenP/market-research-ai-agent
+      url: https://huggingface.co/spaces/SohenP/Market_Research_Agent
     env:
-      SPACE_ID: SohenP/market-research-ai-agent
+      SPACE_ID: SohenP/Market_Research_Agent
       HF_TOKEN: ${{ secrets.HF_TOKEN }}
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
