@@ -1,7 +1,7 @@
 name: Deploy to Hugging Face Space
 
-# Uploads the app to the Hugging Face Space and smoke-tests the live URL.
-# Manual trigger only until a hosting platform is confirmed (docs/adr/0006-hosting-constraints.md).
+# Uploads the app to the Hugging Face Space (Gradio SDK, free CPU hardware) and smoke-tests the live URL.
+# Pass --sdk docker to the deploy module to publish the Dockerfile build instead.
 on:
   workflow_dispatch:
 
