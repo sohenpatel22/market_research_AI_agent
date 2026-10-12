@@ -147,6 +147,9 @@ def test_ensure_space_creates_a_docker_cpu_space_idempotently():
     calls = []
 
     class Api:
+        def repo_exists(self, space_id, repo_type):
+            return False
+
         def create_repo(self, space_id, **kwargs):
             calls.append((space_id, kwargs))
 

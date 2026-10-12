@@ -30,7 +30,7 @@ colorFrom: blue
 colorTo: green
 sdk: gradio
 sdk_version: "{gradio_version}"
-python_version: "3.11"
+python_version: "3.12.12"
 app_file: app.py
 pinned: false
 short_description: Cited research agent over SEC filings, prices and forecasts
@@ -46,6 +46,17 @@ sys.path.insert(0, "src")
 import uvicorn  # noqa: E402
 
 from market_research_agent.api.main import create_app  # noqa: E402
+
+try:
+    import spaces
+
+    # ZeroGPU Spaces refuse to start without a GPU-decorated function; the app itself runs on CPU.
+    @spaces.GPU
+    def _zerogpu_probe() -> int:
+        return 0
+
+except ImportError:
+    pass
 
 uvicorn.run(create_app(), host="0.0.0.0", port=7860)  # noqa: S104
 """
@@ -153,6 +164,8 @@ def sync_files(api, space_id: str, bundle: Path, message: str) -> None:
 
 def ensure_space(api, space_id: str, sdk: str = "gradio") -> None:
     """Create the Space on free CPU hardware if it does not exist yet"""
+    if api.repo_exists(space_id, repo_type="space"):
+        return
     api.create_repo(
         space_id,
         repo_type="space",
@@ -162,7 +175,7 @@ def ensure_space(api, space_id: str, sdk: str = "gradio") -> None:
     )
 
 
-def ensure_cpu_hardware(api, space_id: str) -> str:
+def ensure_cpu_hardware(api, space_id: str, keep_existing: bool = False) -> str:
     """Make sure the Space runs on free CPU hardware"""
     runtime = api.get_space_runtime(space_id)
     requested = str(getattr(runtime, "requested_hardware", None) or "")
@@ -171,6 +184,9 @@ def ensure_cpu_hardware(api, space_id: str) -> str:
     try:
         api.request_space_hardware(space_id, "cpu-basic")
     except Exception as exc:  # noqa: BLE001
+        if keep_existing:
+            print(f"  keeping '{requested or 'unset'}' hardware ({exc})")
+            return requested
         raise RuntimeError(
             f"Space {space_id} runs on '{requested or 'unset'}' hardware and could not be moved to "
             "CPU hardware on this account plan. Delete the Space "
@@ -262,7 +278,7 @@ def deploy(
 
     print(f"Deploying {git_sha[:8]} to {space_id}")
     ensure_space(api, space_id, sdk)
-    ensure_cpu_hardware(api, space_id)
+    ensure_cpu_hardware(api, space_id, keep_existing=sdk == "gradio")
     # Secrets/variables first: uploading files is what triggers the (single) build.
     for key, value in secrets.items():
         api.add_space_secret(space_id, key, value)
