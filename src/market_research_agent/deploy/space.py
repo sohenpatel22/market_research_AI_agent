@@ -150,7 +150,7 @@ def space_variables(env: dict[str, str], git_sha: str) -> dict[str, str]:
         "LLM_PROVIDER": env.get("LLM_PROVIDER", "deepseek"),
         "LANGFUSE_ENVIRONMENT": "production",
         "RATE_LIMIT_PER_MINUTE": env.get("RATE_LIMIT_PER_MINUTE", "10"),
-        "DAILY_REQUEST_LIMIT": env.get("DAILY_REQUEST_LIMIT", "300"),
+        "DAILY_REQUEST_LIMIT": env.get("DAILY_REQUEST_LIMIT", "50"),
     }
 
 
