@@ -11,7 +11,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, StateGraph
 
 from market_research_agent.agent import prompts
-from market_research_agent.agent.guardrails import sanitize_excerpt
+from market_research_agent.agent.guardrails import sanitize_excerpt, screen_question
 from market_research_agent.agent.schemas import (
     AgentAnswer,
     Citation,
@@ -146,6 +146,9 @@ def build_graph(deps: Dependencies, checkpointer: Any | bool | None = None):
         raise StructuredOutputError(f"No valid {schema.__name__} after retries")
 
     def route(state: AgentState) -> dict:
+        if (reason := screen_question(state["question"])) is not None:
+            blocked = RouteDecision(intent="out_of_scope", use_filings=False, refusal_reason=reason)
+            return {"route": blocked, "search_query": state["question"], "retry_count": 0}
         try:
             decision = ask(
                 deps.llm,
