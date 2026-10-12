@@ -138,8 +138,8 @@ def test_gradio_bundle_has_app_requirements_and_no_dockerfile(tmp_path):
     readme = (out / "README.md").read_text(encoding="utf-8")
     assert "sdk: gradio" in readme and "app_file: app.py" in readme
     requirements = (out / "requirements.txt").read_text(encoding="utf-8")
-    assert requirements.startswith(space.TORCH_CPU_INDEX)
-    assert "torch==" in requirements and "gradio==" in requirements
+    assert requirements.splitlines().count(space.ZEROGPU_TORCH) == 1
+    assert "gradio==" in requirements and "extra-index-url" not in requirements
     compile((out / "app.py").read_text(encoding="utf-8"), "app.py", "exec")
 
 

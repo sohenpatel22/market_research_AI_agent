@@ -61,7 +61,8 @@ except ImportError:
 uvicorn.run(create_app(), host="0.0.0.0", port=7860)  # noqa: S104
 """
 
-TORCH_CPU_INDEX = "--extra-index-url https://download.pytorch.org/whl/cpu"
+# ZeroGPU accepts only specific torch releases; this is the newest that pyproject.toml allows.
+ZEROGPU_TORCH = "torch==2.13.0"
 
 # Everything the Dockerfile needs to build the runtime image.
 BUNDLE_FILES = ["Dockerfile", ".dockerignore", "pyproject.toml", "uv.lock"]
@@ -103,7 +104,8 @@ def export_requirements(repo_root: Path) -> str:
         check=True,
     ).stdout
     pins = [ln for ln in out.splitlines() if ln and not ln.startswith(("#", " "))]
-    return "\n".join([TORCH_CPU_INDEX, *pins]) + "\n"
+    pins = [ZEROGPU_TORCH if ln.startswith("torch==") else ln for ln in pins]
+    return "\n".join(dict.fromkeys(pins)) + "\n"
 
 
 def build_bundle(repo_root: Path, out_dir: Path, sdk: str = "gradio") -> Path:
