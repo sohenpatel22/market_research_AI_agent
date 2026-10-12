@@ -51,6 +51,8 @@ def create_app(
     )
     app.state.runtime = runtime
     app.state.limiter = limiter
+    daily = ratelimit.SlidingWindowLimiter(settings.daily_request_limit, window_s=86400)
+    app.state.daily = daily
 
     @app.middleware("http")
     async def request_id_and_timing(request: Request, call_next):
@@ -71,6 +73,10 @@ def create_app(
     def rate_limited(request: Request) -> None:
         ratelimit.enforce(limiter, request)
 
+    def chat_limited(request: Request) -> None:
+        ratelimit.enforce(limiter, request)
+        ratelimit.enforce_daily(daily)
+
     def llm_unavailable(exc: MissingAPIKeyError) -> HTTPException:
         return HTTPException(status_code=503, detail="The language model is not configured.")
 
@@ -90,7 +96,7 @@ def create_app(
         "/chat",
         response_model=ChatResponse,
         tags=["agent"],
-        dependencies=[Depends(rate_limited)],
+        dependencies=[Depends(chat_limited)],
     )
     async def chat(req: ChatRequest) -> ChatResponse:
         """Answer a question with citations, forecasts and data lookups"""
@@ -109,7 +115,7 @@ def create_app(
             session_id=session_id,
         )
 
-    @app.post("/chat/stream", tags=["agent"], dependencies=[Depends(rate_limited)])
+    @app.post("/chat/stream", tags=["agent"], dependencies=[Depends(chat_limited)])
     async def chat_stream(req: ChatRequest) -> StreamingResponse:
         """Server-Sent Events: `step` events as the agent works, then one `final` event"""
         session_id = req.session_id or uuid.uuid4().hex

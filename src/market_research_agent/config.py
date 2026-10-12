@@ -41,7 +41,10 @@ class Settings(BaseSettings):
     use_reranker: bool = True
     reranker_model_name: str = "cross-encoder/ms-marco-MiniLM-L-6-v2"
     agent_max_retries: int = 2
-    rate_limit_per_minute: int = 30
+    rate_limit_per_minute: int = 10
+    # Total chat requests per day across all clients (0 disables); caps worst-case LLM spend.
+    daily_request_limit: int = 300
+    llm_max_output_tokens: int = 1500
     agent_quality_threshold: float = 0.7
     embedding_model_name: str = "BAAI/bge-small-en-v1.5"
 

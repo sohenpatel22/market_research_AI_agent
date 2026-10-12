@@ -25,3 +25,27 @@ def sanitize_excerpt(text: str) -> str:
         line for line in text.splitlines() if not any(p.search(line) for p in _INJECTION_PATTERNS)
     ]
     return "\n".join(kept).strip()[:MAX_CHUNK_CHARS]
+
+
+# Questions that try to take over the assistant are refused before any model call is made.
+_MISUSE_PATTERNS = [
+    re.compile(p, re.IGNORECASE)
+    for p in (
+        r"(ignore|disregard|forget|override) .{0,30}(instructions|prompts?|rules|guidelines)",
+        r"\byou are now\b",
+        r"\b(act|behave|respond) as (if you (are|were)|an?|the)\b",
+        r"\bpretend (to be|you)\b",
+        r"\b(developer|debug|jailbreak|dan) mode\b",
+        r"\bjailbreak\b",
+        r"(reveal|show|print|repeat) (me )?(your|the) .{0,15}(prompt|instructions)",
+    )
+]
+
+MISUSE_REASON = "That request tries to change how this assistant works."
+
+
+def screen_question(question: str) -> str | None:
+    """A refusal reason if the question looks like a prompt-injection or jailbreak attempt"""
+    if any(p.search(question) for p in _MISUSE_PATTERNS):
+        return MISUSE_REASON
+    return None
