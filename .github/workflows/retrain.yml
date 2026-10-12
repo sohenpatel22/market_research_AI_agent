@@ -64,7 +64,7 @@ jobs:
           git add artifacts/models
           git commit -m "Retrain models ($(date +%Y-%m-%d))"
           git push origin "$branch"
-          gh pr create --base master --head "$branch" \
+          gh pr create --base main --head "$branch" \
             --title "Retrain models ($(date +%Y-%m-%d))" --body-file retrain_report.md \
             || echo "Pull request not created; open one from branch $branch."
           # Pull requests opened with the workflow token do not start CI, so start it explicitly.
