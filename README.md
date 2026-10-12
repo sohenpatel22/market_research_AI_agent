@@ -2,12 +2,15 @@
 
 [![CI](https://github.com/sohenpatel22/market_research_AI_agent/actions/workflows/ci.yml/badge.svg)](https://github.com/sohenpatel22/market_research_AI_agent/actions/workflows/ci.yml)
 
-An agentic research assistant over SEC filings and stock prices. It routes a plain-English
-question, retrieves filing excerpts (hybrid vector + keyword search with a cross-encoder reranker),
-calls trained volatility/direction forecasters and whitelisted SQL lookups, drafts a **cited**
-answer, and has a judge model verify it against the sources, retrying with a rewritten search when
-it is weak. Every question is traced in Langfuse; quality is measured with a golden set, RAGAS and a
-DeepEval CI gate.
+A research assistant for SEC filings and stock prices. You ask a question in plain English and it
+decides what it needs: filing excerpts (hybrid vector and keyword search, then a cross-encoder rerank),
+a volatility or direction forecast from models I trained, or a lookup in the price database. It writes
+an answer with citations, then a second model checks that answer against the sources and the agent
+retries with a rewritten search if the check fails. Every question is traced in Langfuse, and quality
+is measured with a 99-question golden set, RAGAS and a DeepEval gate in CI.
+
+**Live demo:** https://huggingface.co/spaces/SohenP/Market_Research_Agent (limited to 50 questions a
+day to keep the bill near zero, so it may tell you to come back tomorrow).
 
 ![Chat tab: cited answer with a model forecast and a quality verdict](docs/images/ui-chat.jpg)
 
@@ -194,8 +197,9 @@ return prediction. Outputs are statistical estimates, not investment advice.
 `src/market_research_agent/agent/` is a LangGraph state machine:
 `route -> gather -> generate -> grade -> (rewrite -> gather ...) -> finalize`.
 
-* **route**: the LLM classifies the question and picks tools; out-of-scope requests (trades,
-  personalized advice, prompt-override attempts) are refused without touching any tool.
+* **route**: obvious jailbreak phrases are refused by a pattern check before any model call. Otherwise the
+  LLM classifies the question and picks tools; out-of-scope requests (trades, personalized advice, anything
+  unrelated to the covered companies) are refused without touching any tool.
 * **gather**: hybrid filing search (Postgres full-text + pgvector fused with reciprocal rank
   fusion, optional cross-encoder reranking via `USE_RERANKER=true`), the forecasting models, and
   whitelisted read-only SQL lookups. Filings are chunked by 10-K/10-Q "Item" section.
@@ -209,7 +213,9 @@ return prediction. Outputs are statistical estimates, not investment advice.
 uv run python -m market_research_agent.agent.cli "What supply chain risks does Apple report?"
 ```
 
-The provider is chosen with `LLM_PROVIDER` (`deepseek` | `openai` | `anthropic`); see `.env.example`.
+A deployment uses one provider, chosen with `LLM_PROVIDER` (`deepseek` | `openai` | `anthropic`); callers cannot
+switch it. The default is DeepSeek's Flash model, which DeepSeek serves behind the `deepseek-chat` name. See
+`.env.example`.
 
 ## Observability and cost control
 
@@ -350,8 +356,9 @@ Design notes:
   entirely on one worker thread because the Langfuse tracing context is thread-bound.
 * The agent runtime is built lazily and without a checkpointer, so `/health` and `/forecast` work
   with no LLM key and requests don't accumulate state. A missing key is a clean `503`, never a stack trace.
-* `RATE_LIMIT_PER_MINUTE` (default 30 per client IP) protects the paid LLM on `/chat` and `/forecast`
-  (and the UI); errors returned to clients never include internal details.
+* Two limits protect the paid LLM: `RATE_LIMIT_PER_MINUTE` (default 10 per client IP, on `/chat`,
+  `/forecast` and the UI) and `DAILY_REQUEST_LIMIT` (default 50 chat requests a day across all clients, in
+  memory, so it resets when the process restarts). Errors returned to clients never include internal details.
 * The Gradio UI (`viz/`) is a thin layer over the same `ask_stream`, `forecast` and price tables:
   a live progress checklist and cited sources in **Ask the agent**, a Plotly forecast chart in
   **Forecast**, and Matplotlib/Seaborn charts (relative performance, return distribution, correlation)
@@ -388,34 +395,37 @@ validation respond.
 
 ## Deployment
 
-The app is hosted on a Hugging Face Space (Gradio SDK) at https://huggingface.co/spaces/SohenP/Market_Research_Agent,
-backed by the Neon database, and also runs locally with `make docker-up`. The Docker image remains the portable
-artifact and is built and smoke-tested in CI ([ADR 0006](docs/adr/0006-hosting-constraints.md)).
+The demo runs on a Hugging Face Space (Gradio SDK) at https://huggingface.co/spaces/SohenP/Market_Research_Agent,
+reading from a Neon Postgres database with pgvector. The same code also runs locally with `make docker-up`, and
+CI builds and smoke-tests the Docker image on every push. Getting the Space to start took a few workarounds
+for ZeroGPU hardware (a pinned torch version, no Gradio SSR, a small GPU probe app); they are written up in
+[ADR 0006](docs/adr/0006-hosting-constraints.md).
 
 ```
-GitHub (master) --> ci.yml: lint, tests, DeepEval gate, Docker build + container smoke test
-                \--> seed-database.yml (weekly) --> Neon Postgres (pgvector): prices, filings, forecasts
-                \--> retrain.yml (monthly) --> pull request with a new model bundle, only if it is better
-                \--> deploy-oracle.yml (manual) --> arm64 image on an Oracle Cloud Always Free VM
-                \--> deploy.yml (manual) --> Hugging Face Space
+GitHub (main) --> ci.yml: lint, tests, DeepEval gate, Docker build + container smoke test
+              \--> seed-database.yml (weekly) --> Neon Postgres: prices, filings, forecasts
+              \--> retrain.yml (monthly) --> pull request with a new model bundle, only if it is better
+              \--> deploy.yml (manual) --> Hugging Face Space, then a health, UI and /chat smoke test
+              \--> deploy-oracle.yml (manual, optional) --> arm64 image on an Oracle Cloud VM
 ```
 
 | Workflow | Trigger | What it does |
 |---|---|---|
 | `ci.yml` | push / PR | lint, tests, DeepEval gate, Docker build + container smoke test |
-| `seed-database.yml` | weekly + manual | runs the ingestion pipeline against the production database and refreshes the published forecasts (idempotent) |
+| `seed-database.yml` | weekly + manual | runs ingestion against the production database and refreshes the published forecasts (idempotent) |
 | `retrain.yml` | monthly + manual | walk-forward retraining check; opens a PR only when a new model is warranted |
-| `deploy-oracle.yml` | manual | builds the arm64 image, pushes it to GHCR and restarts it on the VM ([setup guide](docs/oracle-deploy.md)) |
-| `deploy.yml` | manual | copies secrets into a Hugging Face Space, uploads the build context, smoke-tests the live URL |
+| `deploy.yml` | manual | sets the Space secrets, uploads `app.py`, `requirements.txt` and the source, waits for the build, smoke-tests the live URL |
+| `deploy-oracle.yml` | manual | builds the arm64 image, pushes it to GHCR and restarts it on an Oracle VM ([setup guide](docs/oracle-deploy.md)); written for Oracle's free tier but not in use, because I could not get a free Arm instance |
 | `preflight.yml` | manual | checks the database, pgvector and the Hugging Face token without printing secrets |
 
 **Secrets** (GitHub repo settings): `DATABASE_URL`, `DEEPSEEK_API_KEY`, `LANGFUSE_PUBLIC_KEY`,
-`LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL`, plus `HF_TOKEN` for the Space deploy or `ORACLE_HOST` and
-`ORACLE_SSH_KEY` for the Oracle deploy. A repository variable `SEC_EDGAR_USER_AGENT` ("Your Name you@example.com")
-is recommended for ingestion.
+`LANGFUSE_SECRET_KEY`, `LANGFUSE_BASE_URL`, plus `HF_TOKEN` for the Space deploy (or `ORACLE_HOST` and
+`ORACLE_SSH_KEY` for Oracle). A repository variable `SEC_EDGAR_USER_AGENT` ("Your Name you@example.com") is
+recommended for ingestion.
 
-**Cost:** the infrastructure runs on free tiers (Neon, GitHub Actions, Oracle Always Free). The only variable
-cost is the LLM, about $0.001 per question on DeepSeek, and the app rate-limits clients (`RATE_LIMIT_PER_MINUTE`).
+**Cost.** Neon, GitHub Actions and the Space are on free tiers. The only variable cost is the LLM, about
+$0.001 per question on DeepSeek. The live app caps itself at 10 requests a minute per client and 50 chat
+requests a day overall, and only the DeepSeek key is sent to the Space, so the worst case is a few cents a day.
 
 ## MCP server
 
@@ -445,11 +455,13 @@ Tools: `search_filings`, `forecast_ticker`, `lookup_market_data` (database and m
 - Noisy LLM-judge metrics need calibrated thresholds with the reason written down, and inexpensive
   deterministic checks (refusals, tool use, numeric facts) catch what judges miss.
 - Serverless databases change engineering details: short transactions, pooler-safe prepared statements, URL normalization.
-- Platform constraints can change; keeping deployment automation separate from the application kept
-  the project deliverable.
+- Free hosting is the hard part. The Docker image never changed, but I went through a paid-plan wall on
+  Hugging Face, an Oracle Arm instance that was never in stock, and ZeroGPU quirks before the Space ran.
+  Keeping deployment code separate from the app meant none of that touched the agent.
 
 **Next**
-- Publish the hosted demo and add authentication.
+- Add authentication, so the daily cap can be per user instead of global.
 - Have a second person label the golden set, and add multi-turn questions with conversation memory.
 - Add distribution-level drift monitoring (for example Evidently) to the retraining job, and more tickers.
-- Repeat the provider comparison with several runs per model, to put error bars on the small gaps.
+- Repeat the provider comparison with several runs per model, to put error bars on the small gaps, and try a
+  cheaper OpenAI model as another row.
