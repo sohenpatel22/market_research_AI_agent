@@ -58,6 +58,23 @@ try:
 except ImportError:
     pass
 
+import os, socket, urllib.request  # DIAG
+
+print("DIAG argv", sys.argv, "pid", os.getpid(), "ppid", os.getppid(), flush=True)  # DIAG
+print("DIAG env", {k: v for k, v in os.environ.items() if "GRADIO" in k or "SPACE" in k or "PORT" in k}, flush=True)  # DIAG
+s = socket.socket()  # DIAG
+print("DIAG connect", s.connect_ex(("127.0.0.1", 7860)), flush=True)  # DIAG
+try:  # DIAG
+    print("DIAG http", urllib.request.urlopen("http://127.0.0.1:7860/", timeout=3).read(300), flush=True)  # DIAG
+except Exception as e:  # DIAG
+    print("DIAG http err", repr(e)[:200], flush=True)  # DIAG
+for pid in os.listdir("/proc"):  # DIAG
+    if pid.isdigit():  # DIAG
+        try:  # DIAG
+            print("DIAG proc", pid, open("/proc/" + pid + "/cmdline").read().replace(chr(0), " ")[:150], flush=True)  # DIAG
+        except Exception:  # DIAG
+            pass  # DIAG
+
 uvicorn.run(create_app(), host="0.0.0.0", port=7860)  # noqa: S104
 """
 
