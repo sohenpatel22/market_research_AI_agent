@@ -65,17 +65,20 @@ def test_golden_item(item_id, deps, judge):
         retrieval_context=[c.text for c in answer.retrieved_context],
     )
     cfg = THRESHOLDS["deepeval"]
-    assert_test(
-        case,
-        [
-            FaithfulnessMetric(
-                threshold=cfg["faithfulness"], model=judge, include_reason=False, async_mode=False
-            ),
-            AnswerRelevancyMetric(
-                threshold=cfg["answer_relevancy"],
-                model=judge,
-                include_reason=False,
-                async_mode=False,
-            ),
-        ],
-    )
+    metrics = [
+        FaithfulnessMetric(
+            threshold=cfg["faithfulness"], model=judge, include_reason=False, async_mode=False
+        ),
+        AnswerRelevancyMetric(
+            threshold=cfg["answer_relevancy"], model=judge, include_reason=False, async_mode=False
+        ),
+    ]
+    # The judge occasionally returns text DeepEval cannot parse (AttributeError); a low score is
+    # an AssertionError and is never retried.
+    for attempt in range(3):
+        try:
+            assert_test(case, metrics)
+            return
+        except AttributeError:
+            if attempt == 2:
+                raise
