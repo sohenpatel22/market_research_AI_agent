@@ -388,8 +388,9 @@ validation respond.
 
 ## Deployment
 
-The app runs end to end locally with `make docker-up`. Public hosting is the one piece still open; the image,
-the production database and the deploy workflows are ready ([ADR 0006](docs/adr/0006-hosting-constraints.md)).
+The app is hosted on a Hugging Face Space (Gradio SDK) at https://huggingface.co/spaces/SohenP/Market_Research_Agent,
+backed by the Neon database, and also runs locally with `make docker-up`. The Docker image remains the portable
+artifact and is built and smoke-tested in CI ([ADR 0006](docs/adr/0006-hosting-constraints.md)).
 
 ```
 GitHub (master) --> ci.yml: lint, tests, DeepEval gate, Docker build + container smoke test
