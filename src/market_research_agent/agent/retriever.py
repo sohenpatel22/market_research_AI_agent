@@ -97,7 +97,7 @@ def hybrid_search(
 def _cross_encoder():
     from sentence_transformers import CrossEncoder
 
-    return CrossEncoder(settings.reranker_model_name)
+    return CrossEncoder(settings.reranker_model_name, device="cpu")
 
 
 def rerank(query: str, chunks: list[RetrievedChunk], top_k: int) -> list[RetrievedChunk]:
