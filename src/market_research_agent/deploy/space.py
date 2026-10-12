@@ -200,6 +200,25 @@ def ensure_cpu_hardware(api, space_id: str, keep_existing: bool = False) -> str:
     return "cpu-basic"
 
 
+def print_logs(token: str, space_id: str, kind: str, max_lines: int = 60) -> None:
+    """Print the tail of the Space's build or container log (server-sent events)"""
+    lines: list[str] = []
+    try:
+        with httpx.stream(
+            "GET",
+            f"https://huggingface.co/api/spaces/{space_id}/logs/{kind}",
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=httpx.Timeout(20, read=10),
+        ) as r:
+            for line in r.iter_lines():
+                if line.startswith("data:"):
+                    lines.append(line[5:].strip())
+    except httpx.HTTPError:
+        pass
+    print(f"--- {kind} log (last {max_lines} lines) ---")
+    print("\n".join(lines[-max_lines:]))
+
+
 def wait_until_running(api, space_id: str, timeout_s: int, poll_s: int = 15) -> str:
     """Block until the Space is RUNNING; raise with a hint on failure or timeout"""
     deadline = time.monotonic() + timeout_s
@@ -212,6 +231,9 @@ def wait_until_running(api, space_id: str, timeout_s: int, poll_s: int = 15) -> 
         if stage == "RUNNING":
             return stage
         if stage in TERMINAL_FAILURES:
+            token = getattr(api, "token", None)
+            if token:
+                print_logs(token, space_id, "build" if stage == "BUILD_ERROR" else "run")
             raise RuntimeError(
                 f"Space entered {stage}; see its build/container logs on Hugging Face"
             )
